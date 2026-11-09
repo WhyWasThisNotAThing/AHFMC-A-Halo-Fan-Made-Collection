@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>AHFMC: A Halo Fan-Made Collection - Big Picture</title>
+<link rel="stylesheet" type="text/css" href="bigpicture.css" />
+<script src="bigpicture.js" defer></script>
+</head>
+<body class="mouseMode">
+<video id="bgv" muted loop playsinline></video>
+<audio id="bgm" loop preload="auto"></audio>
+<div id="bg"></div>
+<div id="bgart"></div>
+<div id="shade"></div>
+<div id="dragBar"></div>
+
+<header id="top">
+	<div id="brand"><b>AHFMC</b><span>A HALO FAN-MADE COLLECTION</span></div>
+	<nav id="nav">
+		<a class="fx tab" data-view="home">Home</a>
+		<a class="fx tab" data-view="library">Library</a>
+		<a class="fx tab" data-view="news">News<i id="newDot"></i></a>
+		<a class="fx tab" data-act="chat">Chat</a>
+		<a class="fx tab" data-view="settings">Settings</a>
+		<a class="fx tab" data-view="credits">Credits</a>
+	</nav>
+	<div id="sys">
+		<span id="clock"></span>
+		<a class="fx round" id="minBtn" title="Minimize">&#8212;</a>
+		<a class="fx round" id="winBtn" title="Windowed">&#10064;</a>
+		<a class="fx round" id="powerBtn" title="Power">&#9211;</a>
+	</div>
+</header>
+
+<main>
+	<section id="home" class="view on">
+		<div id="hero">
+			<div id="heroTitle"></div>
+			<div id="heroSub"></div>
+			<a class="fx btn primary" id="heroPlay">&#9654;&nbsp; PLAY</a>
+		</div>
+		<div class="shelfName">AHFMC: A HALO FAN-MADE COLLECTION</div>
+		<div class="shelf" id="shelfFan"></div>
+		<div class="shelfName">OFFICIAL GAMES</div>
+		<div class="shelf" id="shelfOff"></div>
+	</section>
+	<section id="library" class="view">
+		<h2>Library</h2>
+		<div class="grid" id="gridAll"></div>
+	</section>
+	<section id="news" class="view"><h2>News</h2><div id="newsList"><div class="note">Loading the latest release notes...</div></div></section>
+	<section id="settings" class="view"><h2>Settings</h2><div id="setWrap"><div id="setCats"></div><div id="setList"></div></div></section>
+	<section id="credits" class="view">
+		<h2>Credits</h2>
+		<div class="card"><h3>AHFMC: A Halo Fan-Made Collection</h3>
+			<p>Launcher made by <a class="fx link" data-url="https://github.com/WhyWasThisNotAThing">WhyWasThisNotAThing</a></p>
+			<p class="dim">Fan made project. Not made by, affiliated with or endorsed by Microsoft, Xbox Game Studios or Halo Studios. Halo and its related names, logos and artwork belong to Microsoft.</p></div>
+		<div class="card"><h3>Fan projects it launches</h3>
+			<p>Halo 3 Reclaimer: <a class="fx link" data-url="https://github.com/ProjectReclaimer/project-reclaimer-releases">Project Reclaimer releases</a></p>
+			<p>Halo Reach Renaissance: <a class="fx link" data-url="https://github.com/NETF1ix/reach-renaissance-releases">NETF1ix releases</a></p>
+			<p>Halo 2 Gravemind: <a class="fx link" data-url="https://github.com/BriRoz1/h2gravemind-releases/releases/">h2gravemind-releases (BriRoz1)</a></p>
+			<p>Open Community Edition: <a class="fx link" data-url="https://opencommunityedition.com/">opencommunityedition.com</a></p>
+			<p>Project Groundside: <a class="fx link" data-url="https://discord.gg/nRusWYMdYu">Project Groundside Discord</a></p></div>
+		<div class="card"><h3>Contact</h3>
+			<p>Contact me: <a class="fx link" data-mail="1">whywasthisnotathing@gmail.com</a></p></div>
+		<div class="card"><h3>Official games</h3>
+			<p class="dim">Halo MCC, Infinite, Campaign Evolved and the other official games are only opened through Steam or the Microsoft Store.</p></div>
+		<div class="card"><h3>Menu and media</h3>
+			<p>Menu sprites and font come from the Classic Halo CE menu: web interface by Oscar Sanchez (owhs), Halo font by Will Turnbow (dafont), images from halopedia.org. The background video and music are chosen by you.</p>
+			<p class="dim">The Big Picture layout is only a look inspired by Steam Big Picture. It is not made by or connected to Valve.</p></div>
+	</section>
+</main>
+
+<footer id="hints"></footer>
+<div id="detail" class="overlay"></div>
+<div id="power" class="overlay"></div>
+<div id="drop" class="overlay"></div>
+<div id="status"><span id="statusText"></span> <a id="cancelDl" style="display:none">Cancel</a><div id="bar"><i></i></div></div>
+<div id="countdown"></div>
+</body>
+</html>

@@ -1,0 +1,82 @@
+<UserControl x:Class="AHFMCChat.AuthView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Background="{StaticResource Bg}" Foreground="{StaticResource Text}"
+        FontFamily="Segoe UI" FontSize="13"
+        Width="420" PreviewKeyDown="Window_PreviewKeyDown">
+  <StackPanel Margin="32,28,32,28">
+    <TextBlock Text="Chat" FontSize="28" FontWeight="Bold"/>
+    <TextBlock Text="Private messaging with end-to-end encryption."
+               Foreground="{StaticResource Muted}" Margin="0,2,0,22" TextWrapping="Wrap"/>
+
+    <StackPanel x:Name="StepLogin">
+      <StackPanel x:Name="SignupNamePanel" Visibility="Collapsed">
+        <TextBlock Text="Username (3-16 letters, numbers, _)" Style="{StaticResource Label}"/>
+        <TextBox x:Name="SignupNameBox" Margin="0,0,0,12" MaxLength="16"/>
+      </StackPanel>
+      <TextBlock x:Name="IdLabel" Text="Username or email" Style="{StaticResource Label}"/>
+      <TextBox x:Name="EmailBox" Margin="0,0,0,12"/>
+      <TextBlock Text="Password" Style="{StaticResource Label}"/>
+      <PasswordBox x:Name="PassBox" Margin="0,0,0,12"/>
+      <StackPanel x:Name="ConfirmPanel" Visibility="Collapsed">
+        <TextBlock Text="Repeat password (min 8 characters)" Style="{StaticResource Label}"/>
+        <PasswordBox x:Name="ConfirmBox" Margin="0,0,0,12"/>
+        <TextBlock Text="There is no password reset or account recovery, so don't forget your password."
+                   Foreground="{StaticResource Warn}" FontSize="11" TextWrapping="Wrap" Margin="0,-4,0,12"/>
+      </StackPanel>
+      <StackPanel x:Name="AgreePanel" Visibility="Collapsed" Margin="0,0,0,10">
+        <CheckBox x:Name="AgreeBox" Foreground="{StaticResource Muted}">
+          <TextBlock Text="I am 16 or older and I agree to the Privacy Policy, Terms of Service and Code of Conduct" TextWrapping="Wrap"/>
+        </CheckBox>
+        <WrapPanel Margin="0,2,0,0">
+          <Button Style="{StaticResource Link}" Content="Read the Privacy Policy" Click="Privacy_Click"/>
+          <Button Style="{StaticResource Link}" Content="Read the Terms of Service" Click="Terms_Click" Margin="14,0,0,0"/>
+          <Button Style="{StaticResource Link}" Content="Read the Code of Conduct" Click="Conduct_Click" Margin="14,0,0,0"/>
+          <Button Style="{StaticResource Link}" Content="Read the Chat Rules" Click="Rules_Click" Margin="14,0,0,0"/>
+        </WrapPanel>
+      </StackPanel>
+      <CheckBox x:Name="RememberBox" IsChecked="True" Content="Stay signed in on this computer" Foreground="{StaticResource Muted}" Margin="0,0,0,10"/>
+      <Button x:Name="LoginBtn" Style="{StaticResource Primary}" Content="Log in"
+              Click="Login_Click" Margin="0,4,0,0"/>
+      <Button x:Name="ModeLink" Style="{StaticResource Link}" Content="New here? Create an account"
+              Click="Mode_Click" Margin="0,12,0,0" HorizontalAlignment="Center"/>
+    </StackPanel>
+
+    <StackPanel x:Name="StepUnlock" Visibility="Collapsed">
+      <TextBlock Text="Enter your encryption passphrase to unlock your messages."
+                 TextWrapping="Wrap" Margin="0,0,0,12"/>
+      <TextBlock Text="Encryption passphrase" Style="{StaticResource Label}"/>
+      <PasswordBox x:Name="UnlockBox" Margin="0,0,0,12"/>
+      <Button Style="{StaticResource Primary}" Content="Unlock" Click="Unlock_Click" Margin="0,4,0,0"/>
+      <Button Style="{StaticResource Link}" Content="Use a different account"
+              Click="Back_Click" Margin="0,12,0,0" HorizontalAlignment="Center"/>
+    </StackPanel>
+
+    <StackPanel x:Name="StepSetup" Visibility="Collapsed">
+      <TextBlock Text="Choose a permanent username and an encryption passphrase."
+                 TextWrapping="Wrap" Margin="0,0,0,6"/>
+      <TextBlock Text="The passphrase is required. It protects your private keys, and you enter it every time you log in. If you forget it, your messages can't be recovered."
+                 Foreground="{StaticResource Warn}" TextWrapping="Wrap" Margin="0,0,0,14" FontSize="12"/>
+      <TextBlock Text="Username (3-16 letters, numbers, _)" Style="{StaticResource Label}"/>
+      <TextBox x:Name="NameBox" Margin="0,0,0,12" MaxLength="16"/>
+      <StackPanel x:Name="PassphrasePanel">
+        <TextBlock Text="Passphrase (min 12 characters, e.g. 4 random words)" Style="{StaticResource Label}"/>
+        <PasswordBox x:Name="Pass1" Margin="0,0,0,12"/>
+        <TextBlock Text="Repeat passphrase" Style="{StaticResource Label}"/>
+        <PasswordBox x:Name="Pass2" Margin="0,0,0,6"/>
+        <Button Content="Suggest a strong passphrase" Click="Suggest_Click" Style="{StaticResource Link}"
+                HorizontalAlignment="Left" Margin="0,0,0,6"/>
+        <TextBox x:Name="SuggestBox" IsReadOnly="True" Visibility="Collapsed" FontFamily="Consolas" FontSize="15" Margin="0,0,0,6"/>
+        <TextBlock x:Name="SuggestHint" Visibility="Collapsed" Foreground="{StaticResource Warn}" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,12"
+                   Text="Write this down or save it in a password manager NOW. It has been filled in for you. If you lose it, your messages cannot be recovered."/>
+      </StackPanel>
+      <Button Style="{StaticResource Primary}" Content="Create account" Click="Create_Click" Margin="0,4,0,0"/>
+      <Button Style="{StaticResource Link}" Content="Use a different account"
+              Click="Back_Click" Margin="0,12,0,0" HorizontalAlignment="Center"/>
+    </StackPanel>
+
+    <TextBlock x:Name="ErrorText" Foreground="{StaticResource Danger}" TextWrapping="Wrap"
+               Margin="0,14,0,0" Visibility="Collapsed"/>
+    <ProgressBar x:Name="BusyBar" IsIndeterminate="True" Height="3" Margin="0,14,0,0" Visibility="Collapsed"/>
+  </StackPanel>
+</UserControl>

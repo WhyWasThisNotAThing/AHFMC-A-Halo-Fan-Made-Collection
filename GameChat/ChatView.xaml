@@ -1,0 +1,159 @@
+<UserControl x:Class="AHFMCChat.ChatView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Background="{StaticResource Bg}" Foreground="{StaticResource Text}"
+        FontFamily="Segoe UI" FontSize="13">
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="*"/>
+      <RowDefinition Height="Auto"/>
+    </Grid.RowDefinitions>
+
+    <Grid Grid.Row="0">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="176"/>
+        <ColumnDefinition Width="*"/>
+      </Grid.ColumnDefinitions>
+
+      <Border Grid.Column="0" Background="{StaticResource Panel}"
+              BorderBrush="{StaticResource Line}" BorderThickness="0,0,1,0">
+        <Grid>
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+          </Grid.RowDefinitions>
+
+          <StackPanel Grid.Row="0" Margin="14,14,14,8">
+            <TextBlock x:Name="UserText" FontSize="16" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+              <Button Content="🔒  Lock" Click="Lock_Click" Padding="9,4" ToolTip="Lock the chat (asks for your passphrase)"/>
+              <Button x:Name="BtnDebug" Content="🛠" Click="Debug_Click" Padding="9,4" Margin="6,0,0,0"
+                      ToolTip="Debug: system log, safety codes and connection status (Ctrl+Shift+D)"/>
+            </StackPanel>
+          </StackPanel>
+
+          <ListBox Grid.Row="1" x:Name="NavList" ItemContainerStyle="{StaticResource NavItem}"
+                   SelectionChanged="NavList_SelectionChanged">
+            <ListBox.GroupStyle>
+              <GroupStyle>
+                <GroupStyle.HeaderTemplate>
+                  <DataTemplate>
+                    <TextBlock Text="{Binding Name}" Foreground="{StaticResource Muted}"
+                               FontSize="11" FontWeight="SemiBold" Margin="14,12,0,4"/>
+                  </DataTemplate>
+                </GroupStyle.HeaderTemplate>
+              </GroupStyle>
+            </ListBox.GroupStyle>
+            <ListBox.ItemTemplate>
+              <DataTemplate>
+                <DockPanel>
+                  <Border DockPanel.Dock="Right" Background="{StaticResource Accent}" CornerRadius="9"
+                          MinWidth="18" Padding="5,0" VerticalAlignment="Center"
+                          Visibility="{Binding HasUnread, Converter={StaticResource B2V}}">
+                    <TextBlock Text="{Binding Unread}" FontSize="11" Foreground="White"
+                               HorizontalAlignment="Center"/>
+                  </Border>
+                  <TextBlock Text="{Binding Icon}" Width="18" Foreground="{StaticResource Muted}"/>
+                  <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis"/>
+                </DockPanel>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+
+          <StackPanel Grid.Row="2" Margin="10">
+            <StackPanel x:Name="SideActions">
+              <Button Content="+  New direct message" Click="NewDm_Click" Margin="0,0,0,6"/>
+              <Button Content="+  New party" Click="NewParty_Click" Margin="0,0,0,6"/>
+              <Button Content="🎮  Find players" Click="PartyFinder_Click" ToolTip="Party finder: see who else wants to play the same game, and post that you are looking"/>
+            </StackPanel>
+            <Button x:Name="BtnReports" Content="🛡  Reports" Click="Reports_Click" Visibility="Collapsed" Margin="0,6,0,0"
+                    ToolTip="Reports about users. Only you can see this."/>
+          </StackPanel>
+        </Grid>
+      </Border>
+
+      <Grid Grid.Column="1">
+        <Grid.RowDefinitions>
+          <RowDefinition Height="Auto"/>
+          <RowDefinition Height="Auto"/>
+          <RowDefinition Height="*"/>
+          <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Padding="18,12" BorderBrush="{StaticResource Line}" BorderThickness="0,0,0,1">
+          <StackPanel>
+            <StackPanel VerticalAlignment="Center">
+              <TextBlock x:Name="TitleText" FontSize="17" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+              <TextBlock x:Name="SubText" FontSize="11" Foreground="{StaticResource Muted}" TextTrimming="CharacterEllipsis"/>
+            </StackPanel>
+            <WrapPanel Orientation="Horizontal">
+              <Button x:Name="BtnAccept" Style="{StaticResource Primary}" Content="Accept invite" Click="Accept_Click" Margin="0,8,6,0"/>
+              <Button x:Name="BtnMembers" Content="Members" Click="Members_Click" Margin="0,8,6,0"/>
+              <Button x:Name="BtnInvite" Content="Invite" Click="Invite_Click" Margin="0,8,6,0"/>
+              <Button x:Name="BtnKick" Style="{StaticResource DangerButton}" Content="Kick" Click="Kick_Click" Margin="0,8,6,0"/>
+              <Button x:Name="BtnLeave" Style="{StaticResource DangerButton}" Content="Leave" Click="Leave_Click" Margin="0,8,6,0"/>
+              <Button x:Name="BtnDisband" Style="{StaticResource DangerButton}" Content="Disband" Click="Disband_Click" Margin="0,8,6,0"/>
+              <Button x:Name="BtnMore" Content="⋯" FontSize="16" Padding="10,2" Click="More_Click" Margin="0,8,6,0" ToolTip="Report, block and more"/>
+              <Button x:Name="BtnFingerprint" Visibility="Collapsed"/>
+              <Button x:Name="BtnVerify" Visibility="Collapsed"/>
+              <Button x:Name="BtnBlock" Visibility="Collapsed"/>
+              <Button x:Name="BtnReport" Visibility="Collapsed"/>
+            </WrapPanel>
+          </StackPanel>
+        </Border>
+
+        <Border x:Name="Banner" Grid.Row="1" Padding="18,6" Visibility="Collapsed">
+          <TextBlock x:Name="BannerText" FontSize="12" TextWrapping="Wrap"/>
+        </Border>
+
+        <ListBox x:Name="MsgList" Grid.Row="2" ItemContainerStyle="{StaticResource PlainItem}" Margin="0,6">
+          <ListBox.ItemTemplate>
+            <DataTemplate>
+              <DockPanel Margin="16,6,18,6">
+                <Border DockPanel.Dock="Left" Width="34" Height="34" CornerRadius="17" Background="{Binding NameBrush}"
+                        VerticalAlignment="Top" Margin="0,2,12,0">
+                  <TextBlock Text="{Binding Initial}" Foreground="#101318" FontWeight="Bold" FontSize="15"
+                             HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+                <StackPanel>
+                  <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="{Binding From}" FontWeight="SemiBold" Foreground="{Binding NameBrush}"/>
+                    <TextBlock Text="{Binding TimeText}" Foreground="{StaticResource Muted}" FontSize="11" Margin="8,2,0,0"/>
+                  </StackPanel>
+                  <TextBlock Text="{Binding Text}" TextWrapping="Wrap" Margin="0,2,0,0" FontSize="14"/>
+                </StackPanel>
+              </DockPanel>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+
+        <Border x:Name="Composer" Grid.Row="3" Padding="14,12"
+                BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0">
+          <DockPanel>
+            <Button DockPanel.Dock="Right" Style="{StaticResource Primary}" Content="Send"
+                    Click="Send_Click" Margin="8,0,0,0" Padding="18,7"/>
+            <TextBox x:Name="Input" MaxLength="500" KeyDown="Input_KeyDown" FontSize="14" Padding="12,9"/>
+          </DockPanel>
+        </Border>
+      </Grid>
+    </Grid>
+
+    <Border x:Name="StatusBar" Grid.Row="1" Visibility="Collapsed" Background="{StaticResource Panel}" BorderBrush="{StaticResource Line}"
+            BorderThickness="0,1,0,0" Padding="12,4">
+      <TextBlock x:Name="StatusText" Foreground="{StaticResource Muted}" FontSize="11"
+                 Text="Connected." TextTrimming="CharacterEllipsis"/>
+    </Border>
+
+    <Border x:Name="LockOverlay" Grid.RowSpan="2" Background="{StaticResource Bg}" Visibility="Collapsed" Panel.ZIndex="100">
+      <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Width="320">
+        <TextBlock Text="Locked" FontSize="26" FontWeight="Bold" Margin="0,0,0,6"/>
+        <TextBlock Text="Enter your encryption passphrase to continue." Foreground="{StaticResource Muted}"
+                   TextWrapping="Wrap" Margin="0,0,0,14"/>
+        <PasswordBox x:Name="LockBox" Margin="0,0,0,10" KeyDown="LockBox_KeyDown"/>
+        <Button Content="Unlock" Style="{StaticResource Primary}" Click="LockUnlock_Click"/>
+        <TextBlock x:Name="LockError" Foreground="{StaticResource Danger}" TextWrapping="Wrap" Margin="0,10,0,0"/>
+      </StackPanel>
+    </Border>
+  </Grid>
+</UserControl>
