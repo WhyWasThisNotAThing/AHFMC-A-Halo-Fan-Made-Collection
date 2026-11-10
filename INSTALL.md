@@ -56,7 +56,7 @@ You can open this screen again from Settings > Launcher > First-time setup.
 ## 4. Add your games
 
 - **Official Halo games:** if you own a game and it is installed through Steam or the Microsoft Store, its card starts it. If the launcher cannot find it, go to Settings > Official Games and press **Locate...** to pick the game's `.exe`. **Forget** removes your choice again.
-- **Community games** (Halo 3 Reclaimer, Halo Reach Renaissance, Halo 2 Gravemind, Open Community Edition, Project Groundside): click the card. If the game is not installed, the launcher downloads the latest version for you. Settings > Games lets you **Locate...** your own copy, or **Forget / Uninstall** it.
+- **Community games** (Reclaimer, Halo Reach Renaissance, Halo 2 Gravemind, Open Community Edition, Project Groundside, Project Raven): click the card. If the game is not installed, the launcher downloads the latest version for you. Settings > Games lets you **Locate...** your own copy, or **Forget / Uninstall** it.
 - **Your own apps:** go to Settings > My Apps > **Add...**, pick the program, give it a name and, if you like, a picture. Right-click an app on the main screen to rename or remove it.
 
 Play time: the launcher shows how long you have played each game it can see running, official and community, and when you last played it. It stays on your PC.

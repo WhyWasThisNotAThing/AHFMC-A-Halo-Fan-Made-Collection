@@ -30,9 +30,9 @@ A free, fan-made launcher that puts your Halo games, the community Halo projects
 
 **Games**
 - Starts the official Halo games you own (Halo: The Master Chief Collection, Halo 5: Forge, Halo Infinite, Halo: Campaign Evolved (2026), Halo Wars: Definitive Edition, Halo Wars 2, Halo: Spartan Assault and Halo: Spartan Strike). You can also point it at a game's `.exe` yourself.
-- Downloads, updates and starts community projects: Halo 3 Reclaimer, Halo Reach Renaissance, Halo 2 Gravemind, Open Community Edition and Project Groundside.
+- Downloads, updates and starts community projects: Reclaimer, Halo Reach Renaissance, Halo 2 Gravemind, Open Community Edition, Project Groundside and Project Raven.
 - **My Apps**: add any program or game, give it your own name and a picture, and start it from the launcher.
-- Optional 3, 2, 1, GO launch countdown with Halo sounds, and an option to maximize the game window.
+- Optional 3, 2, 1, GO launch countdown with Halo sounds (or your own sounds), and an option to maximize the game window.
 - Shows how long you have played each game, official or community, and when you last played it (this stays on your PC). It counts the time the launcher sees the game running.
 
 **Look and feel**
@@ -79,7 +79,7 @@ Everything about building, making a release and running your own chat server is 
 
 ### Credits
 
-Made by [WhyWasThisNotAThing](https://github.com/WhyWasThisNotAThing). The community games belong to their makers: [Halo 3 Reclaimer](https://github.com/ProjectReclaimer/project-reclaimer-releases), [Halo Reach Renaissance](https://github.com/NETF1ix/reach-renaissance-releases), [Halo 2 Gravemind](https://github.com/BriRoz1/h2gravemind-releases/releases/), [Open Community Edition](https://opencommunityedition.com/) and Project Groundside ([join its Discord](https://discord.gg/nRusWYMdYu)). The full list is in the launcher under **Credits**, and in Settings > Credits and contact.
+Made by [WhyWasThisNotAThing](https://github.com/WhyWasThisNotAThing). The community games belong to their makers: [Reclaimer](https://github.com/ProjectReclaimer/project-reclaimer-releases), [Halo Reach Renaissance](https://github.com/NETF1ix/reach-renaissance-releases), [Halo 2 Gravemind](https://github.com/BriRoz1/h2gravemind-releases/releases/), [Open Community Edition](https://opencommunityedition.com/) and Project Groundside ([join its Discord](https://discord.gg/nRusWYMdYu)). The full list is in the launcher under **Credits**, and in Settings > Credits and contact.
 
 Contact: whywasthisnotathing@gmail.com
 
@@ -163,7 +163,7 @@ You can open this screen again from Settings > Launcher > First-time setup.
 ### 4. Add your games
 
 - **Official Halo games:** if you own a game and it is installed through Steam or the Microsoft Store, its card starts it. If the launcher cannot find it, go to Settings > Official Games and press **Locate...** to pick the game's `.exe`. **Forget** removes your choice again.
-- **Community games** (Halo 3 Reclaimer, Halo Reach Renaissance, Halo 2 Gravemind, Open Community Edition, Project Groundside): click the card. If the game is not installed, the launcher downloads the latest version for you. Settings > Games lets you **Locate...** your own copy, or **Forget / Uninstall** it.
+- **Community games** (Reclaimer, Halo Reach Renaissance, Halo 2 Gravemind, Open Community Edition, Project Groundside, Project Raven): click the card. If the game is not installed, the launcher downloads the latest version for you. Settings > Games lets you **Locate...** your own copy, or **Forget / Uninstall** it.
 - **Your own apps:** go to Settings > My Apps > **Add...**, pick the program, give it a name and, if you like, a picture. Right-click an app on the main screen to rename or remove it.
 
 Play time: the launcher shows how long you have played each game it can see running, official and community, and when you last played it. It stays on your PC.
@@ -925,7 +925,7 @@ Halo and everything that belongs to it are owned by Microsoft, Xbox Game Studios
 
 ### Programs the launcher can download or start
 
-The community Halo projects the launcher can download (Halo 3 Reclaimer, Halo Reach Renaissance, Halo 2 Gravemind, Open Community Edition and Project Groundside) and the games and programs you add yourself are separate programs by other people. They are not part of this project and have their own licenses and rules.
+The community Halo projects the launcher can download (Reclaimer, Halo Reach Renaissance, Halo 2 Gravemind, Open Community Edition and Project Groundside) and the games and programs you add yourself are separate programs by other people. They are not part of this project and have their own licenses and rules.
 
 ### Online services
 

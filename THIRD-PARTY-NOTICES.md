@@ -64,7 +64,7 @@ Halo and everything that belongs to it are owned by Microsoft, Xbox Game Studios
 
 ## Programs the launcher can download or start
 
-The community Halo projects the launcher can download (Halo 3 Reclaimer, Halo Reach Renaissance, Halo 2 Gravemind, Open Community Edition and Project Groundside) and the games and programs you add yourself are separate programs by other people. They are not part of this project and have their own licenses and rules.
+The community Halo projects the launcher can download (Reclaimer, Halo Reach Renaissance, Halo 2 Gravemind, Open Community Edition and Project Groundside) and the games and programs you add yourself are separate programs by other people. They are not part of this project and have their own licenses and rules.
 
 ## Online services
 

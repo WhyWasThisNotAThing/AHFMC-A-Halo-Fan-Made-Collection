@@ -378,6 +378,7 @@ public partial class MainWindow
             case "halo3": if (locate) LocateGame(false); else ForgetOrUninstall("halo3"); break;
             case "reach": if (locate) LocateGame(true); else ForgetOrUninstall("reach"); break;
             case "gravemind": if (locate) LocateGravemind(); else ForgetOrUninstall("gravemind"); break;
+            case "raven": if (locate) LocateRaven(); else ForgetOrUninstall("raven"); break;
             case "groundside": if (locate) LocateGroundside(); else ForgetOrUninstall("groundside"); break;
             case "oce": if (locate) LocateOce(); else ForgetOrUninstall("oce"); break;
             default:
@@ -611,7 +612,7 @@ public partial class MainWindow
             () => _config.CloseToTray ? "Enabled" : "Disabled",
             d => { _config.CloseToTray = !_config.CloseToTray; SaveConfig(); PushClassicState(); });
         Add("Discord Rich Presence",
-            "Show what you are playing on your Discord profile (for example \"Playing Halo 3 Reclaimer\"). Off: nothing is shown and the launcher does not connect to Discord.",
+            "Show what you are playing on your Discord profile (for example \"Playing Reclaimer\"). Off: nothing is shown and the launcher does not connect to Discord.",
             () => _config.DiscordPresence ? "Enabled" : "Disabled",
             d => { _config.DiscordPresence = !_config.DiscordPresence; SaveConfig(); ApplyDiscordSetting(); PushClassicState(); });
         Add("First-time setup",
@@ -651,9 +652,19 @@ public partial class MainWindow
                 d => { if (d > 0) ChangeMenuSound(k2); else ClearMenuSound(k2); }, btns: new[] { "Pick sound...", "Remove" });
         }
         Add("Countdown volume",
-            "The beeps of the 3, 2, 1, GO launch countdown.",
+            "The sounds of the 3, 2, 1, GO launch countdown, including your own if you pick them below.",
             () => VolText(_config.CountdownVolume),
             d => { _config.CountdownVolume = StepVolume(_config.CountdownVolume, d); VolumeChanged("count"); });
+        foreach (var (ckey, cname) in CountSoundList)
+        {
+            string k3 = ckey;
+            Add("Countdown sound: " + cname,
+                k3 == "countgo"
+                    ? "Pick your own short sound (.wav, .mp3 or .ogg) that plays on GO. Remove goes back to the default."
+                    : "Pick your own short sound (.wav, .mp3 or .ogg) for each count of 3, 2, 1. It plays once a second, so keep it short. Remove goes back to the default.",
+                () => MenuSoundPath(k3) != null ? "Your sound" : "Default",
+                d => { if (d > 0) ChangeMenuSound(k3); else ClearMenuSound(k3); }, btns: new[] { "Pick sound...", "Remove" });
+        }
         Add("Chat notification sound",
             "The ding for a new chat message while the chat is not in front. You hear a sample when you change it. Windows default is the ding you had before.",
             () => new[] { "Off", "Windows default", "Halo beep", "Halo respawn" }[Math.Clamp(AHFMCChat.LocalSettings.NotificationSound, 0, 3)],
@@ -672,8 +683,8 @@ public partial class MainWindow
             "Open the news when the launcher starts and one of the projects below has a new release.",
             () => _config.ShowNewsOnStart ? "Enabled" : "Disabled",
             d => { _config.ShowNewsOnStart = !_config.ShowNewsOnStart; SaveConfig(); PushClassicState(); });
-        Add("Halo 3 Reclaimer news",
-            "Include the Halo 3 Reclaimer release notes.",
+        Add("Reclaimer news",
+            "Include the Reclaimer release notes.",
             () => _config.NewsHalo3 ? "Enabled" : "Disabled",
             d => { _config.NewsHalo3 = !_config.NewsHalo3; SaveConfig(); PushClassicState(); PushNews(false); });
         Add("Halo Reach Renaissance news",
@@ -688,6 +699,10 @@ public partial class MainWindow
             "Include the Halo 2 Gravemind release notes.",
             () => _config.NewsGravemind ? "Enabled" : "Disabled",
             d => { _config.NewsGravemind = !_config.NewsGravemind; SaveConfig(); PushClassicState(); PushNews(false); });
+        Add("Project Raven news",
+            "Include the Project Raven release notes.",
+            () => _config.NewsRaven ? "Enabled" : "Disabled",
+            d => { _config.NewsRaven = !_config.NewsRaven; SaveConfig(); PushClassicState(); PushNews(false); });
 
         Header("Chat");
         Add("Account",
@@ -750,7 +765,7 @@ public partial class MainWindow
             d => { if (d > 0) _ = ChatAccountActionAsync(AHFMCChat.SettingsAction.Logout); }, btn: "Log out");
 
         Header("Games");
-        Add("Halo 3 Reclaimer location",
+        Add("Reclaimer location",
             "Locate: pick the game's .exe yourself. Forget / Uninstall: forget your copy, or uninstall the one the launcher downloaded.",
             () => GameLocation(_config.Halo3Exe, _config.Halo3Manual),
             d => { if (d > 0) LocateGame(false); else ForgetOrUninstall("halo3"); }, btns: new[] { "Locate...", "Forget / Uninstall" });
@@ -766,6 +781,10 @@ public partial class MainWindow
             "Locate: pick the game's .exe yourself. Forget / Uninstall: forget it and let the launcher download the game.",
             () => GameLocation(_config.GravemindExe, _config.GravemindManual),
             d => { if (d > 0) LocateGravemind(); else ForgetOrUninstall("gravemind"); }, btns: new[] { "Locate...", "Forget / Uninstall" });
+        Add("Project Raven location",
+            "Locate: pick the Project Raven .exe yourself. Forget / Uninstall: forget it and let the launcher download it. Project Raven asks for your Fireteam Raven game folder itself the first time it runs.",
+            () => GameLocation(_config.RavenExe, _config.RavenManual),
+            d => { if (d > 0) LocateRaven(); else ForgetOrUninstall("raven"); }, btns: new[] { "Locate...", "Forget / Uninstall" });
         Add("Project Groundside location",
             "Locate: pick the Project Groundside .exe yourself. Forget / Uninstall: forget it and let the launcher download it.",
             () => GameLocation(_config.GroundsideExe, _config.GroundsideManual),
@@ -815,9 +834,10 @@ public partial class MainWindow
             Add(label, desc, () => "-", d => { if (d > 0) OpenSettingsLink(url); }, btn: button);
         Link("Made by WhyWasThisNotAThing", "The launcher is a free, fan-made project. Open the maker's GitHub page.", "https://github.com/WhyWasThisNotAThing");
         Link("This project on GitHub", "Source code, releases and issues.", "https://github.com/WhyWasThisNotAThing/AHFMC-A-Halo-Fan-Made-Collection");
-        Link("Halo 3 Reclaimer", "Made by its own creators. Downloaded from the Project Reclaimer releases.", "https://github.com/ProjectReclaimer/project-reclaimer-releases");
+        Link("Reclaimer", "Made by its own creators. Downloaded from the Project Reclaimer releases.", "https://github.com/ProjectReclaimer/project-reclaimer-releases");
         Link("Halo Reach Renaissance", "Made by its own creators. Downloaded from the NETF1ix releases.", "https://github.com/NETF1ix/reach-renaissance-releases");
         Link("Halo 2 Gravemind", "Made by its own creators. Downloaded from h2gravemind-releases (BriRoz1).", "https://github.com/BriRoz1/h2gravemind-releases/releases/");
+        Link("Project Raven", "Made by bryantmh. Downloaded from the Project Raven releases on GitHub.", "https://github.com/bryantmh/project-raven/releases");
         Link("Open Community Edition", "Made by its own creators. Open the Open Community Edition website.", "https://opencommunityedition.com/");
         Link("Project Groundside", "Made by its own creators. Join the Project Groundside Discord server.", GroundsideDiscord, "Join Discord...");
         Add("Contact me",
@@ -986,6 +1006,66 @@ public partial class MainWindow
         finally { SetBusy(false, " "); }
     }
 
+
+    private bool HasRaven => _config.RavenExe != null && File.Exists(_config.RavenExe);
+
+    private void UpdateRavenText()
+    {
+        RavenSub.Text = HasRaven
+            ? (_config.RavenManual ? "Installed: your own copy" : $"Ready to play {_config.RavenVersion}".TrimEnd())
+            : "Not installed: click to download the latest version";
+        if (HasRaven) RavenSub.Text += PlayedText("Project Raven");
+        Install.SetState(RavenBtn, HasRaven ? "Installed" : "Not installed");
+    }
+
+    private void LocateRaven()
+    {
+        var dlg = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = "Find the Project Raven .exe",
+            Filter = "Programs (*.exe)|*.exe",
+            CheckFileExists = true
+        };
+        ShowMouse();
+        Topmost = false;
+        bool ok = dlg.ShowDialog(this) == true;
+        Topmost = _config.WindowMode == 0;
+        Activate();
+        if (!ok) return;
+        _config.RavenExe = dlg.FileName;
+        _config.RavenManual = true;
+        SaveConfig();
+        UpdateSubtitles();
+        RefreshSettings();
+    }
+
+    private async void ForgetRaven()
+    {
+        if (!_config.RavenManual) return;
+        if (!await ShowDialogAsync("Forget this location?", "The launcher will download the game itself the next time you start it.", "Forget it", "Keep it")) return;
+        _config.RavenExe = null; _config.RavenManual = false; _config.RavenVersion = null;
+        SaveConfig();
+        UpdateSubtitles();
+        RefreshSettings();
+    }
+
+    private async void Raven_Click(object sender, RoutedEventArgs e) => await PlayRavenAsync();
+
+    private async Task PlayRavenAsync()
+    {
+        if (_counting || _busy) return;
+        try
+        {
+            await RunWithCountdownAsync(true, PrepareRavenAsync);
+
+            if (_config.RavenExe == null || !File.Exists(_config.RavenExe))
+                throw new FileNotFoundException("Could not find the executable target. Please check file properties.");
+
+            Launch(_config.RavenExe!, "Project Raven");
+        }
+        catch (Exception ex) { ShowError(ex); }
+        finally { SetBusy(false, " "); }
+    }
 
     private const string GroundsideUrl = "https://downloads.projectgroundside.com/launcher/ProjectGroundside.exe";
     private bool HasGroundside => _config.GroundsideExe != null && File.Exists(_config.GroundsideExe);
@@ -1181,10 +1261,11 @@ public partial class MainWindow
 
     private static readonly Dictionary<string, (string Folder, string Name)> DownloadedGames = new()
     {
-        ["halo3"] = ("Halo3Reclaimer", "Halo 3 Reclaimer"),
+        ["halo3"] = ("Halo3Reclaimer", "Reclaimer"),
         ["reach"] = ("HaloReachRenaissance", "Halo Reach Renaissance"),
         ["oce"] = ("OpenCE", "Open Community Edition"),
         ["gravemind"] = ("Halo2Gravemind", "Halo 2 Gravemind"),
+        ["raven"] = ("ProjectRaven", "Project Raven"),
         ["groundside"] = ("ProjectGroundside", "Project Groundside"),
     };
 
@@ -1194,6 +1275,7 @@ public partial class MainWindow
         "reach" => (_config.ReachExe, _config.ReachManual),
         "oce" => (_config.OceExe, _config.OceManual),
         "gravemind" => (_config.GravemindExe, _config.GravemindManual),
+        "raven" => (_config.RavenExe, _config.RavenManual),
         "groundside" => (_config.GroundsideExe, _config.GroundsideManual),
         _ => (null, false)
     };
@@ -1215,6 +1297,7 @@ public partial class MainWindow
             case "halo3": ForgetLocation(false); break;
             case "reach": ForgetLocation(true); break;
             case "gravemind": ForgetGravemind(); break;
+            case "raven": ForgetRaven(); break;
             case "oce": ForgetOce(); break;
             case "groundside": ForgetGroundside(); break;
         }
@@ -1245,6 +1328,7 @@ public partial class MainWindow
             case "reach": _config.ReachExe = null; _config.ReachManual = false; _config.ReachVersion = null; break;
             case "oce": _config.OceExe = null; _config.OceManual = false; _config.OceVersion = null; break;
             case "gravemind": _config.GravemindExe = null; _config.GravemindManual = false; _config.GravemindVersion = null; break;
+            case "raven": _config.RavenExe = null; _config.RavenManual = false; _config.RavenVersion = null; break;
             case "groundside": _config.GroundsideExe = null; _config.GroundsideManual = false; _config.GroundsideSha = null; _config.GroundsideStamp = null; break;
         }
         SaveConfig();
@@ -1260,7 +1344,7 @@ public partial class MainWindow
     private void EndPlay()
     {
         if (_playName == null) return;
-        string g = _playName;
+        string g = StatKey(_playName);
         _playName = null;
         long secs = (long)(DateTime.UtcNow - _playStart).TotalSeconds;
         if (secs < 5) return;
@@ -1292,8 +1376,12 @@ public partial class MainWindow
     private Dictionary<string, string> OfficialPlayedAll() =>
         OfficialList.ToDictionary(x => x.Id, x => OfficialPlayed(x.Id));
 
+    // The game used to be called "Halo 3 Reclaimer". Play time is still saved under that name so nobody loses it.
+    private static string StatKey(string name) => name == "Reclaimer" ? "Halo 3 Reclaimer" : name;
+
     private string PlayedText(string game)
     {
+        game = StatKey(game);
         if (!_config.PlayStats.TryGetValue(game, out var st) || st.Seconds < 30) return "";
         var t = TimeSpan.FromSeconds(st.Seconds);
         string played = t.TotalHours >= 1 ? $"{(int)t.TotalHours}h {t.Minutes}m" : $"{Math.Max(1, (int)t.TotalMinutes)} min";
@@ -1433,6 +1521,13 @@ public partial class MainWindow
         ("cursor", "Move"), ("fwd", "Select"), ("back", "Back")
     };
 
+    private static readonly (string Key, string Name)[] CountSoundList =
+    {
+        ("countbeep", "3, 2, 1 beep"), ("countgo", "GO")
+    };
+
+    private static IEnumerable<(string Key, string Name)> AllSoundList => MenuSoundList.Concat(CountSoundList);
+
     private static string MenuSoundsFolder => Path.Combine(Root, "MenuSounds");
 
     private string? MenuSoundPath(string key)
@@ -1452,11 +1547,11 @@ public partial class MainWindow
 
     private void ChangeMenuSound(string key)
     {
-        var item = MenuSoundList.FirstOrDefault(x => x.Key == key);
+        var item = AllSoundList.FirstOrDefault(x => x.Key == key);
         if (item.Key == null) return;
         var dlg = new Microsoft.Win32.OpenFileDialog
         {
-            Title = "Pick a sound for \"" + item.Name + "\" (short .wav, .mp3 or .ogg)",
+            Title = key.StartsWith("count") ? "Pick a countdown sound for \"" + item.Name + "\" (short .wav, .mp3 or .ogg)" : "Pick a sound for \"" + item.Name + "\" (short .wav, .mp3 or .ogg)",
             Filter = "Sounds (*.wav;*.mp3;*.ogg)|*.wav;*.mp3;*.ogg",
             CheckFileExists = true
         };
@@ -1469,7 +1564,7 @@ public partial class MainWindow
         try
         {
             if (new FileInfo(dlg.FileName).Length > 3 * 1024 * 1024)
-            { ShowError(new Exception("That sound is too big. Pick a short one (under 3 MB). Menu sounds should only last a moment.")); return; }
+            { ShowError(new Exception("That sound is too big. Pick a short one (under 3 MB). These sounds should only last a moment.")); return; }
             Directory.CreateDirectory(MenuSoundsFolder);
             string name = key + "_" + DateTime.UtcNow.Ticks + Path.GetExtension(dlg.FileName).ToLowerInvariant();
             File.Copy(dlg.FileName, Path.Combine(MenuSoundsFolder, name), true);
@@ -1479,17 +1574,23 @@ public partial class MainWindow
         catch (Exception ex) { ShowError(new Exception("Couldn't use that sound.\n\n" + ex.Message)); return; }
         SaveConfig();
         AfterAppsChanged();
+        if (key.StartsWith("count")) PlayCountSound(key == "countgo");
     }
 
     private void RemoveMenuSoundFile(string key)
     {
+        foreach (var id in _menuPlayers.Keys.Where(k => k.StartsWith(key + "|")).ToList())
+        {
+            try { _menuPlayers[id].Close(); } catch { }
+            _menuPlayers.Remove(id);
+        }
         try { if (_config.MenuSounds.TryGetValue(key, out var n) && n.Length > 0) File.Delete(Path.Combine(MenuSoundsFolder, n)); } catch { }
         _config.MenuSounds.Remove(key);
     }
 
     private void ClearMenuSound(string key)
     {
-        if (!MenuSoundList.Any(x => x.Key == key)) return;
+        if (!AllSoundList.Any(x => x.Key == key)) return;
         RemoveMenuSoundFile(key);
         SaveConfig();
         AfterAppsChanged();
@@ -1497,8 +1598,8 @@ public partial class MainWindow
 
     private static readonly (string Id, string Name)[] CommunityList =
     {
-        ("reach", "Halo Reach Renaissance"), ("halo3", "Halo 3 Reclaimer"), ("gravemind", "Halo 2 Gravemind"),
-        ("oce", "Open Community Edition"), ("groundside", "Project Groundside")
+        ("reach", "Halo Reach Renaissance"), ("halo3", "Reclaimer"), ("gravemind", "Halo 2 Gravemind"),
+        ("oce", "Open Community Edition"), ("groundside", "Project Groundside"), ("raven", "Project Raven")
     };
 
     private static IEnumerable<(string Id, string Name)> AllGameList => OfficialList.Concat(CommunityList);
@@ -1757,7 +1858,7 @@ public partial class MainWindow
     {
         var dlg = new Microsoft.Win32.OpenFileDialog
         {
-            Title = reach ? "Find Reach Renaissance.exe" : "Find the Halo 3 Reclaimer .exe",
+            Title = reach ? "Find Reach Renaissance.exe" : "Find the Reclaimer .exe",
             Filter = reach ? "Reach Renaissance|Reach Renaissance.exe|Programs (*.exe)|*.exe" : "Programs (*.exe)|*.exe",
             CheckFileExists = true
         };
@@ -1869,14 +1970,15 @@ public partial class MainWindow
         _counting = true;
         try
         {
+            WarmCountSounds();
             for (int n = 3; n >= 1; n--)
             {
                 ShowCount(n.ToString(), false);
-                PlaySound("Sounds\\beep.wav", _config.CountdownVolume);
+                PlayCountSound(false);
                 await Task.Delay(1000);
             }
             ShowCount("GO", true);
-            PlaySound("Sounds\\go.wav", _config.CountdownVolume);
+            PlayCountSound(true);
             await Task.Delay(800);
         }
         finally
@@ -1902,6 +2004,54 @@ public partial class MainWindow
         CountdownPane.Visibility = Visibility.Collapsed;
         CountStatus.Text = " ";
         ClassicSend(new { type = "count", text = "" });
+    }
+
+    private void WarmCountSounds()
+    {
+        try
+        {
+            foreach (var (key, _) in CountSoundList)
+            {
+                string? custom = MenuSoundPath(key);
+                if (custom == null || custom.EndsWith(".wav", StringComparison.OrdinalIgnoreCase)) continue;
+                string id = key + "|" + custom;
+                if (_menuPlayers.ContainsKey(id)) continue;
+                var mp = new System.Windows.Media.MediaPlayer { Volume = 0 };
+                mp.Open(new Uri(custom));
+                _menuPlayers[id] = mp;
+            }
+        }
+        catch { }
+    }
+
+    private void PlayCountSound(bool go)
+    {
+        string key = go ? "countgo" : "countbeep";
+        string fallback = go ? "Sounds\\go.wav" : "Sounds\\beep.wav";
+        try
+        {
+            string? custom = MenuSoundPath(key);
+            if (custom == null) { PlaySound(fallback, _config.CountdownVolume); return; }
+
+            double gain = AHFMCChat.SoundEngine.Curve(_config.MasterVolume) * AHFMCChat.SoundEngine.Curve(_config.CountdownVolume);
+            if (gain <= 0.0001) return;
+            if (custom.EndsWith(".wav", StringComparison.OrdinalIgnoreCase))
+            {
+                AHFMCChat.SoundEngine.Play("count", File.ReadAllBytes(custom), gain);
+                return;
+            }
+            string id = key + "|" + custom;
+            if (!_menuPlayers.TryGetValue(id, out var mp))
+            {
+                mp = new System.Windows.Media.MediaPlayer();
+                mp.Open(new Uri(custom));
+                _menuPlayers[id] = mp;
+            }
+            mp.Stop();
+            mp.Volume = Math.Min(1.0, gain);
+            mp.Play();
+        }
+        catch { PlaySound(fallback, _config.CountdownVolume); }
     }
 
     private void PlaySound(string resource, int volume)
@@ -1941,7 +2091,7 @@ public partial class MainWindow
         ApplyVolumes();
         PushClassicState();
         RefreshSettings();
-        if (sample == "count") PlaySound("Sounds\\beep.wav", _config.CountdownVolume);
+        if (sample == "count") PlayCountSound(false);
         else if (sample == "ding") AHFMCChat.SoundEngine.PlayDing();
     }
 

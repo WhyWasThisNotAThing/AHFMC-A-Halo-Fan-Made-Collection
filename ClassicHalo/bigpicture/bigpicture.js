@@ -21,8 +21,9 @@ const BASE_FAN = [
 	{ id: 'reach', t: 'Halo Reach Renaissance', icon: 4, opts: ['Play', 'Locate Game'] },
 	{ id: 'oce', t: 'Open Community Edition', icon: 5, opts: ['Play', 'Locate Game'] },
 	{ id: 'gravemind', t: 'Halo 2 Gravemind', icon: 10, opts: ['Play', 'Locate Game'] },
-	{ id: 'halo3', t: 'Halo 3 Reclaimer', icon: 9, opts: ['Play', 'Locate Game'] },
-	{ id: 'groundside', t: 'Project Groundside', icon: 11, opts: ['Install', 'Locate Game'] }
+	{ id: 'halo3', t: 'Reclaimer', icon: 9, opts: ['Play', 'Locate Game'] },
+	{ id: 'groundside', t: 'Project Groundside', icon: 11, opts: ['Install', 'Locate Game'] },
+	{ id: 'raven', t: 'Project Raven', icon: 11, opts: ['Play', 'Locate Game'] }
 ].map(g => Object.assign(g, { kind: 'fan' }));
 const ADD_APP = { id: 'addapp', t: 'Add Your Own App', sub: 'Pick a program to add it here', icon: 12, kind: 'fan' };
 const MOD_URLS = ['https://steamcommunity.com/app/976730/workshop/', 'https://steamcommunity.com/my/myworkshopfiles/?appid=976730&browsefilter=mysubscriptions'];
@@ -96,7 +97,7 @@ function statusOf(t) {
 		if (st.length && st.every(x => x === 'Not installed')) return { text: 'Not installed', cls: 'no' };
 		return { text: t.opts.length > 1 ? t.opts.length + ' ways to play' : t.opts[0], cls: '' };
 	}
-	let sub = t.id === 'reach' ? S.reach : t.id === 'halo3' ? S.halo3 : t.id === 'gravemind' ? S.gravemind : t.id === 'groundside' ? S.groundside : t.id === 'oce' ? S.oce : t.sub;
+	let sub = t.id === 'reach' ? S.reach : t.id === 'halo3' ? S.halo3 : t.id === 'gravemind' ? S.gravemind : t.id === 'groundside' ? S.groundside : t.id === 'oce' ? S.oce : t.id === 'raven' ? S.raven : t.sub;
 	sub = sub || '';
 	return { text: sub, cls: /^(Ready|Installed)/i.test(sub) ? 'ok' : /^(Not installed|File missing)/i.test(sub) ? 'no' : '' };
 }

@@ -498,14 +498,20 @@
                         </Button>
                         <Button x:Name="Halo3Btn" Style="{StaticResource Card}" Click="Halo3_Click">
                             <StackPanel>
-                                <TextBlock Text="Halo 3 Reclaimer" Style="{StaticResource RowTitle}"/>
+                                <TextBlock Text="Reclaimer" Style="{StaticResource RowTitle}"/>
                                 <TextBlock x:Name="Halo3Sub" Style="{StaticResource RowSub}"/>
                             </StackPanel>
                         </Button>
-                        <Button x:Name="GroundsideBtn" Style="{StaticResource Card}" Click="Groundside_Click" Margin="0">
+                        <Button x:Name="GroundsideBtn" Style="{StaticResource Card}" Click="Groundside_Click">
                             <StackPanel>
                                 <TextBlock Text="Project Groundside" Style="{StaticResource RowTitle}"/>
                                 <TextBlock x:Name="GroundsideSub" Style="{StaticResource RowSub}"/>
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="RavenBtn" Style="{StaticResource Card}" Click="Raven_Click" Margin="0">
+                            <StackPanel>
+                                <TextBlock Text="Project Raven" Style="{StaticResource RowTitle}"/>
+                                <TextBlock x:Name="RavenSub" Style="{StaticResource RowSub}"/>
                             </StackPanel>
                         </Button>
                     </StackPanel>
@@ -647,11 +653,12 @@
 
                     <TextBlock Text="The fan projects it launches belong to their own creators" Foreground="White" FontSize="16" FontWeight="SemiBold" Margin="0,22,0,6"/>
                     <TextBlock TextWrapping="Wrap" Foreground="#C5D3E3" FontSize="15" LineHeight="23">
-                        <Run Text="Halo 3 Reclaimer: downloaded from the "/><Hyperlink NavigateUri="https://github.com/ProjectReclaimer/project-reclaimer-releases" RequestNavigate="Link_RequestNavigate">Project Reclaimer releases</Hyperlink><LineBreak/>
+                        <Run Text="Reclaimer: downloaded from the "/><Hyperlink NavigateUri="https://github.com/ProjectReclaimer/project-reclaimer-releases" RequestNavigate="Link_RequestNavigate">Project Reclaimer releases</Hyperlink><LineBreak/>
                         <Run Text="Halo Reach Renaissance: downloaded from the "/><Hyperlink NavigateUri="https://github.com/NETF1ix/reach-renaissance-releases" RequestNavigate="Link_RequestNavigate">NETF1ix releases</Hyperlink><LineBreak/>
                         <Run Text="Halo 2 Gravemind: downloaded from the "/><Hyperlink NavigateUri="https://github.com/BriRoz1/h2gravemind-releases/releases/" RequestNavigate="Link_RequestNavigate">h2gravemind-releases (BriRoz1)</Hyperlink><LineBreak/>
                         <Run Text="Open Community Edition: "/><Hyperlink NavigateUri="https://opencommunityedition.com/" RequestNavigate="Link_RequestNavigate">opencommunityedition.com</Hyperlink><LineBreak/>
-                        <Run Text="Project Groundside: join the "/><Hyperlink NavigateUri="https://discord.gg/nRusWYMdYu" RequestNavigate="Link_RequestNavigate">Project Groundside Discord</Hyperlink>
+                        <Run Text="Project Groundside: join the "/><Hyperlink NavigateUri="https://discord.gg/nRusWYMdYu" RequestNavigate="Link_RequestNavigate">Project Groundside Discord</Hyperlink><LineBreak/>
+                        <Run Text="Project Raven: downloaded from the "/><Hyperlink NavigateUri="https://github.com/bryantmh/project-raven/releases" RequestNavigate="Link_RequestNavigate">Project Raven releases (bryantmh)</Hyperlink>
                     </TextBlock>
 
                     <TextBlock TextWrapping="Wrap" Foreground="#8FA3BA" FontSize="14" LineHeight="21" Margin="0,18,0,0">
@@ -669,6 +676,7 @@
                         <Button Style="{StaticResource Pill}" Content="Halo 2 Gravemind" Tag="https://github.com/BriRoz1/h2gravemind-releases/releases/" Click="CreditLink_Click" Margin="0,0,10,10"/>
                         <Button Style="{StaticResource Pill}" Content="opencommunityedition.com" Tag="https://opencommunityedition.com/" Click="CreditLink_Click" Margin="0,0,10,10"/>
                         <Button Style="{StaticResource Pill}" Content="Project Groundside Discord" Tag="https://discord.gg/nRusWYMdYu" Click="CreditLink_Click" Margin="0,0,10,10"/>
+                        <Button Style="{StaticResource Pill}" Content="Project Raven" Tag="https://github.com/bryantmh/project-raven/releases" Click="CreditLink_Click" Margin="0,0,10,10"/>
                         <Button Style="{StaticResource Pill}" Content="Contact me" Tag="mailto:whywasthisnotathing@gmail.com" Click="CreditLink_Click" Margin="0,0,10,10"/>
                     </WrapPanel>
                     <Button x:Name="CreditsClose" Style="{StaticResource Pill}" Content="Close" Click="CloseCredits_Click"

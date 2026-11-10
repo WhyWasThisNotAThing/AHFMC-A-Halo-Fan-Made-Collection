@@ -19,7 +19,7 @@ namespace AHFMCChat;
 public sealed record ChatEvent(string Kind, string Channel, string From, string Text, bool Verified, DateTime Time);
 public sealed record Profile(string Id, string Username, string Ek, string Sk);
 public sealed record PartyInfo(string Id, string Name, string Owner, int Epoch, bool IsOwner);
-public sealed record LfgPost(long Id, string UserId, string Username, string Game, string Activity, string Note, int Needed, DateTime ExpiresAt);
+public sealed record LfgPost(long Id, string UserId, string Username, string Game, string Activity, string Note, int Needed, DateTime ExpiresAt, string PartyId = "", int Joined = 0);
 public sealed record ReportItem(long Id, string ReportedId, string Reported, string Reporter, string Reason, string Evidence, string Status, DateTime Created);
 
 sealed class Pin { public string Fp { get; set; } = ""; public bool Verified { get; set; } }
@@ -430,6 +430,7 @@ public sealed class ChatClient : IDisposable
         _ = Task.Run(RealtimeLoopAsync);
         _ = Task.Run(RefreshLoopAsync);
         _ = Task.Run(ModerationLoopAsync);
+        _ = Task.Run(LfgLoopAsync);
     }
 
     public async Task SendPublicAsync(string text)
@@ -1172,7 +1173,7 @@ public sealed class ChatClient : IDisposable
 
     public async Task<List<LfgPost>> ListLfgAsync()
     {
-        var rows = await GetAsync("lfg_posts?select=id,user_id,username,game,activity,note,needed,expires_at&order=created_at.desc&limit=200");
+        var rows = await GetAsync("lfg_posts?select=id,user_id,username,game,activity,note,needed,expires_at,party_id,joined&order=created_at.desc&limit=200");
         var list = new List<LfgPost>();
         foreach (var r in rows)
         {
@@ -1181,10 +1182,12 @@ public sealed class ChatClient : IDisposable
             if (!NameRx.IsMatch(name) || !GameRx.IsMatch(game)) continue;
             if (!name.Equals(Username, StringComparison.OrdinalIgnoreCase) && IsBlocked(name)) continue;
             if (!long.TryParse(S(r["id"]), out long id)) continue;
-            int.TryParse(S(r["needed"]), out int needed);
+            if (!int.TryParse(S(r["needed"]), out int needed)) needed = 1;
+            int.TryParse(S(r["joined"]), out int joined);
+            string partyId = S(r["party_id"]);
             if (!DateTime.TryParse(S(r["expires_at"]), System.Globalization.CultureInfo.InvariantCulture,
                     System.Globalization.DateTimeStyles.AdjustToUniversal | System.Globalization.DateTimeStyles.AssumeUniversal, out var exp)) continue;
-            list.Add(new LfgPost(id, S(r["user_id"]), name, game, Clean(S(r["activity"])), Clean(S(r["note"])), Math.Clamp(needed, 1, 128), exp));
+            list.Add(new LfgPost(id, S(r["user_id"]), name, game, Clean(S(r["activity"])), Clean(S(r["note"])), Math.Clamp(needed, 0, 128), exp, partyId, Math.Clamp(joined, 0, 128)));
         }
         return list;
     }
@@ -1194,16 +1197,112 @@ public sealed class ChatClient : IDisposable
         RequireCanSend();
         if (!GameRx.IsMatch(game)) throw new InvalidOperationException("Pick a game first.");
         static string Cut(string s, int n) => s.Length <= n ? s : s[..n];
-        await RestAsync(HttpMethod.Delete, $"lfg_posts?user_id=eq.{UserId}&game=eq.{game}");
-        await RestAsync(HttpMethod.Post, "lfg_posts", new
+        activity = Cut(Clean(activity), 30);
+        note = Cut(Clean(note).Trim(), 120);
+        needed = Math.Clamp(needed, 1, 128);
+        string expires = DateTime.UtcNow.AddMinutes(Math.Clamp(minutes, 15, 1440)).ToString("o");
+
+        var old = await GetAsync($"lfg_posts?select=id,party_id&user_id=eq.{UserId}&game=eq.{game}");
+        PartyState? existing = null;
+        if (old.Count > 0 && _parties.TryGetValue(S(old[0]!["party_id"]), out var found) && found.OwnerId == UserId) existing = found;
+
+        if (existing != null)
         {
-            game,
-            activity = Cut(Clean(activity), 30),
-            note = Cut(Clean(note).Trim(), 120),
-            needed = Math.Clamp(needed, 1, 128),
-            expires_at = DateTime.UtcNow.AddMinutes(Math.Clamp(minutes, 15, 1440)).ToString("o")
-        });
-        return "Posted. Other players can now see that you are looking.";
+            string pid = existing.Id;
+            int members = (await GetAsync($"party_members?select=user_id&party_id=eq.{pid}")).Count;
+            await RestAsync(HttpMethod.Patch, $"lfg_posts?id=eq.{S(old[0]!["id"])}&user_id=eq.{UserId}",
+                new { activity, note, needed, joined = Math.Clamp(members - 1, 0, 128), expires_at = expires });
+            return $"Updated. You are in party '{existing.Name}'. Players can join it with one click.";
+        }
+
+        string partyName = $"{game[..Math.Min(game.Length, 19)]}-{Random.Shared.Next(100, 1000)}";
+        try { await CreatePartyAsync(partyName); }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("at most 20"))
+        { throw new InvalidOperationException("You own too many parties. Disband one in the chat first, then post again."); }
+        string newPid = _parties.Values.First(x => x.Name == partyName && x.OwnerId == UserId).Id;
+
+        if (old.Count > 0) await RestAsync(HttpMethod.Delete, $"lfg_posts?user_id=eq.{UserId}&game=eq.{game}");
+        await RestAsync(HttpMethod.Post, "lfg_posts", new { game, activity, note, needed, party_id = newPid, expires_at = expires });
+        return $"Posted. You are in party '{partyName}'. Players can join it with one click.";
+    }
+
+    public async Task<string> JoinLfgAsync(LfgPost post)
+    {
+        RequireCanSend();
+        if (post.PartyId.Length == 0) throw new InvalidOperationException("That post has no party. Use Message instead.");
+        if (_parties.ContainsKey(post.PartyId)) throw new InvalidOperationException("You are already in that party.");
+        try { await RestAsync(HttpMethod.Post, "lfg_joins", new { post_id = post.Id }); }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("exists"))
+        { throw new InvalidOperationException("You already asked to join this party. Hang on a few seconds."); }
+        return $"Asked to join {post.Username}'s party. You will be added in a few seconds.";
+    }
+
+    async Task LfgLoopAsync()
+    {
+        var ct = _cts.Token;
+        int fails = 0;
+        while (!ct.IsCancellationRequested)
+        {
+            try { await Task.Delay(fails > 3 ? 60_000 : 6_000, ct); } catch { return; }
+            if (IsBanned) continue;
+            try { await ProcessLfgJoinsAsync(); await AcceptLfgPartiesAsync(); fails = 0; }
+            catch { fails++; }
+        }
+    }
+
+    async Task ProcessLfgJoinsAsync()
+    {
+        if (!_parties.Values.Any(p => p.OwnerId == UserId)) return;
+        foreach (var j in await GetAsync($"lfg_joins?select=post_id,user_id,username,party_id&status=eq.pending&user_id=neq.{UserId}&order=created_at.asc&limit=20"))
+        {
+            if (j == null || !long.TryParse(S(j["post_id"]), out long postId)) continue;
+            string pid = S(j["party_id"]), uname = Clean(S(j["username"])), uid = S(j["user_id"]);
+            string key = $"post_id=eq.{postId}&user_id=eq.{uid}";
+            if (!_parties.TryGetValue(pid, out var party) || party.OwnerId != UserId) continue;
+
+            var post = await GetAsync($"lfg_posts?select=needed,joined&id=eq.{postId}&user_id=eq.{UserId}");
+            if (post.Count == 0) continue;
+            int.TryParse(S(post[0]!["needed"]), out int needed);
+            int.TryParse(S(post[0]!["joined"]), out int joined);
+
+            if (needed <= 0 || IsBlocked(uname) || !NameRx.IsMatch(uname))
+            { await RestAsync(HttpMethod.Patch, $"lfg_joins?{key}", new { status = "full" }); continue; }
+
+            bool count = true;
+            try { await InviteAsync(pid, uname); }
+            catch (InvalidOperationException ex) when (ex.Message.Contains("already in the party")) { count = false; }
+            catch (InvalidOperationException ex) when (ex.Message.Contains("pending invite")) { }
+
+            await RestAsync(HttpMethod.Patch, $"lfg_joins?{key}", new { status = "accepted" });
+            if (!count) continue;
+            int left = Math.Max(0, needed - 1);
+            await RestAsync(HttpMethod.Patch, $"lfg_posts?id=eq.{postId}&user_id=eq.{UserId}", new { needed = left, joined = Math.Clamp(joined + 1, 0, 128) });
+            Emit("system", "party-finder", "", left == 0 ? $"{uname} joined '{party.Name}'. Your party is full." : $"{uname} joined '{party.Name}'. You still need {left} more.");
+        }
+    }
+
+    async Task AcceptLfgPartiesAsync()
+    {
+        foreach (var j in await GetAsync($"lfg_joins?select=post_id,party_id,status&user_id=eq.{UserId}"))
+        {
+            if (j == null) continue;
+            string pid = S(j["party_id"]), status = S(j["status"]), key = $"post_id=eq.{S(j["post_id"])}&user_id=eq.{UserId}";
+            if (_parties.ContainsKey(pid)) { await RestAsync(HttpMethod.Delete, $"lfg_joins?{key}"); continue; }
+            if (status == "full")
+            {
+                await RestAsync(HttpMethod.Delete, $"lfg_joins?{key}");
+                Emit("warn", "system", "", "Could not join that party: it filled up or was closed first.");
+                continue;
+            }
+            if (status != "accepted") continue;
+            try
+            {
+                string msg = await AcceptAsync(pid);
+                await RestAsync(HttpMethod.Delete, $"lfg_joins?{key}");
+                Emit("system", "party-finder", "", msg + " (from the party finder)");
+            }
+            catch (InvalidOperationException ex) when (ex.Message.Contains("No such invite")) { }
+        }
     }
 
     public async Task RemoveLfgAsync(long id)

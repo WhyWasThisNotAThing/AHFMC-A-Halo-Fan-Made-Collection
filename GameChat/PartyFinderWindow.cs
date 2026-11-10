@@ -17,7 +17,7 @@ public sealed class PartyFinderWindow : Window
         ("hw2", "Halo Wars 2"),
         ("spartanassault", "Halo: Spartan Assault"),
         ("spartanstrike", "Halo: Spartan Strike"),
-        ("halo3", "Halo 3 Reclaimer"),
+        ("halo3", "Reclaimer"),
         ("reach", "Halo Reach Renaissance"),
         ("oce", "Open Community Edition"),
         ("gravemind", "Halo 2 Gravemind"),
@@ -36,9 +36,12 @@ public sealed class PartyFinderWindow : Window
     readonly TextBlock _formTitle = new() { FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 8) };
     readonly TextBox _note = new() { MaxLength = 120, Margin = new Thickness(0, 8, 0, 0) };
     readonly ComboBox _activityBox = new(), _neededBox = new(), _durationBox = new();
-    readonly TextBox _custom = new() { Width = 90, Margin = new Thickness(8, 0, 0, 0), Visibility = Visibility.Collapsed, ToolTip = "For example 90, 90m, 1.5h or 2h30 (15 minutes to 24 hours)" };
+    readonly TextBox _custom = new() { Width = 110, ToolTip = "For example 90, 90m, 1.5h, 1:30 or 2h30 (15 minutes to 24 hours)" };
+    readonly TextBlock _customHint = new() { Margin = new Thickness(10, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center, FontSize = 12 };
+    readonly StackPanel _customRow = new() { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 8, 0, 0), Visibility = Visibility.Collapsed };
     readonly Button _postBtn;
-    readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromSeconds(15) };
+    readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromSeconds(10) };
+    readonly DispatcherTimer _clock = new() { Interval = TimeSpan.FromSeconds(20) };
 
     List<LfgPost> _posts = new();
     string _game = "ce2026";
@@ -66,9 +69,18 @@ public sealed class PartyFinderWindow : Window
         for (int i = 1; i <= MaxPlayers; i++) _neededBox.Items.Add(i == 1 ? "1 player" : i + " players");
         foreach (var x in DurationNames) _durationBox.Items.Add(x);
         _activityBox.SelectedIndex = 0; _neededBox.SelectedIndex = 1; _durationBox.SelectedIndex = 3;
-        _activityBox.Margin = _neededBox.Margin = _durationBox.Margin = new Thickness(0, 0, 8, 0);
+        _activityBox.Margin = _neededBox.Margin = _durationBox.Margin = new Thickness(0, 0, 8, 4);
         _activityBox.MinWidth = 140; _neededBox.MinWidth = 110; _durationBox.MinWidth = 120;
-        _durationBox.SelectionChanged += (_, _) => { _custom.Visibility = DurationMinutes[Math.Max(0, _durationBox.SelectedIndex)] == 0 ? Visibility.Visible : Visibility.Collapsed; if (_custom.IsVisible) _custom.Focus(); };
+        _durationBox.SelectionChanged += (_, _) =>
+        {
+            bool custom = DurationMinutes[Math.Max(0, _durationBox.SelectedIndex)] == 0;
+            _customRow.Visibility = custom ? Visibility.Visible : Visibility.Collapsed;
+            if (custom) { UpdateCustomHint(); Dispatcher.BeginInvoke(new Action(() => { _custom.Focus(); _custom.SelectAll(); }), DispatcherPriority.Input); }
+        };
+        _custom.TextChanged += (_, _) => UpdateCustomHint();
+        _customRow.Children.Add(new TextBlock { Text = "Custom time:", Foreground = Res("Muted"), VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) });
+        _customRow.Children.Add(_custom);
+        _customRow.Children.Add(_customHint);
         _postBtn = new Button { Style = Sty("Primary"), Padding = new Thickness(16, 7, 16, 7) };
         _postBtn.Click += async (_, _) => await PostAsync();
         _status.Foreground = Res("Muted");
@@ -90,17 +102,17 @@ public sealed class PartyFinderWindow : Window
         {
             Background = Res("Panel"), BorderBrush = Res("Line"), BorderThickness = new Thickness(0, 1, 0, 0), Padding = new Thickness(18, 12, 18, 12)
         };
-        var row = new StackPanel { Orientation = Orientation.Horizontal };
+        var row = new WrapPanel { Orientation = Orientation.Horizontal };
         row.Children.Add(new TextBlock { Text = "Playing:", Foreground = Res("Muted"), VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) });
         row.Children.Add(_activityBox);
         row.Children.Add(new TextBlock { Text = "Players needed:", Foreground = Res("Muted"), VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 0, 8, 0) });
         row.Children.Add(_neededBox);
         row.Children.Add(new TextBlock { Text = "For:", Foreground = Res("Muted"), VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 0, 8, 0) });
         row.Children.Add(_durationBox);
-        row.Children.Add(_custom);
         var formStack = new StackPanel();
         formStack.Children.Add(_formTitle);
         formStack.Children.Add(row);
+        formStack.Children.Add(_customRow);
         var noteRow = new DockPanel { Margin = new Thickness(0, 8, 0, 0) };
         DockPanel.SetDock(_postBtn, Dock.Right);
         _postBtn.Margin = new Thickness(10, 0, 0, 0);
@@ -135,8 +147,9 @@ public sealed class PartyFinderWindow : Window
         BuildCards();
 
         _timer.Tick += async (_, _) => { if (!_busy) await RefreshAsync(); };
-        Loaded += async (_, _) => { _timer.Start(); await RefreshAsync(); };
-        Closed += (_, _) => _timer.Stop();
+        _clock.Tick += (_, _) => { if (_loaded) { BuildGameList(); BuildCards(); } };
+        Loaded += async (_, _) => { _timer.Start(); _clock.Start(); await RefreshAsync(); };
+        Closed += (_, _) => { _timer.Stop(); _clock.Stop(); };
     }
 
     void BuildGameList()
@@ -144,7 +157,7 @@ public sealed class PartyFinderWindow : Window
         _gameList.Children.Clear();
         void Item(string id, string name)
         {
-            int n = _posts.Count(p => id == "" || p.Game == id);
+            int n = _posts.Count(p => p.ExpiresAt > DateTime.UtcNow && (p.Needed > 0 || p.UserId == _chat.UserId) && (id == "" || p.Game == id));
             var t = new DockPanel { LastChildFill = true };
             var count = new TextBlock { Text = n == 0 ? "" : n.ToString(), Foreground = Res("Accent"), FontWeight = FontWeights.SemiBold, Margin = new Thickness(8, 0, 0, 0) };
             DockPanel.SetDock(count, Dock.Right);
@@ -163,9 +176,10 @@ public sealed class PartyFinderWindow : Window
     void BuildCards()
     {
         _cards.Children.Clear();
-        var shown = _posts.Where(p => _game == "" || p.Game == _game)
+        var shown = _posts.Where(p => p.ExpiresAt > DateTime.UtcNow && (p.Needed > 0 || p.UserId == _chat.UserId) && (_game == "" || p.Game == _game))
                           .OrderByDescending(p => p.UserId == _chat.UserId).ThenBy(p => p.ExpiresAt).ToList();
         int others = shown.Count(p => p.UserId != _chat.UserId);
+        int stillNeeded = shown.Sum(p => p.Needed);
         _heading.Text = _game == "" ? "Everyone looking for players" : GameName(_game);
 
         if (!_loaded) { _cards.Children.Add(Info("Loading...")); return; }
@@ -179,7 +193,8 @@ public sealed class PartyFinderWindow : Window
         if (_game != "")
             _cards.Children.Add(new TextBlock
             {
-                Text = others == 0 ? "Only you so far." : others == 1 ? "1 other person wants to play this." : others + " other people want to play this.",
+                Text = (others == 0 ? "Only you so far." : others == 1 ? "1 other person wants to play this." : others + " other people want to play this.")
+                       + "  ·  " + (stillNeeded == 1 ? "1 player still needed" : stillNeeded + " players still needed") + " in total",
                 Foreground = Res("Muted"), Margin = new Thickness(18, 0, 18, 6)
             });
         foreach (var p in shown) _cards.Children.Add(Card(p));
@@ -201,10 +216,23 @@ public sealed class PartyFinderWindow : Window
         {
             var msg = new Button { Content = "Message", Margin = new Thickness(0, 0, 6, 0) };
             msg.Click += (_, _) => { MessageRequested?.Invoke(p.Username); Close(); };
-            var inv = new Button { Content = "Invite to party  ▾", Style = Sty("Primary") };
-            inv.Click += (_, _) => ShowInviteMenu(inv, p);
             buttons.Children.Add(msg);
-            buttons.Children.Add(inv);
+            if (p.PartyId.Length == 0)
+            {
+                var inv = new Button { Content = "Invite to party  ▾", Style = Sty("Primary") };
+                inv.Click += (_, _) => ShowInviteMenu(inv, p);
+                buttons.Children.Add(inv);
+            }
+            else if (_chat.Parties.Any(x => x.Id == p.PartyId))
+                buttons.Children.Add(new Button { Content = "In your party", IsEnabled = false });
+            else if (p.Needed <= 0)
+                buttons.Children.Add(new Button { Content = "Party full", IsEnabled = false });
+            else
+            {
+                var join = new Button { Content = "Join party", Style = Sty("Primary"), Padding = new Thickness(16, 5, 16, 5) };
+                join.Click += async (_, _) => await Run(async () => Say(await _chat.JoinLfgAsync(p), false));
+                buttons.Children.Add(join);
+            }
         }
 
         var title = new StackPanel { Orientation = Orientation.Horizontal };
@@ -212,13 +240,16 @@ public sealed class PartyFinderWindow : Window
         if (mine) title.Children.Add(new TextBlock { Text = "  (you)", Foreground = Res("Muted"), VerticalAlignment = VerticalAlignment.Bottom });
 
         var mins = Math.Max(0, (int)Math.Ceiling((p.ExpiresAt - DateTime.UtcNow).TotalMinutes));
-        string left = mins >= 60 ? $"{mins / 60} h {mins % 60} min left" : $"{mins} min left";
+        string left = FormatMinutes(mins) + " left";
         string what = (_game == "" ? GameName(p.Game) + "  ·  " : "") + (p.Activity.Length > 0 ? p.Activity + "  ·  " : "")
-                      + (p.Needed == 1 ? "needs 1 more player" : $"needs {p.Needed} more players") + "  ·  " + left;
+                      + (p.Needed <= 0 ? "party full" : p.Needed == 1 ? "still needs 1 player" : $"still needs {p.Needed} players")
+                      + (p.Joined > 0 ? $"  ·  {p.Joined} joined" : "") + "  ·  " + left;
 
         var text = new StackPanel { Margin = new Thickness(0, 0, 12, 0) };
         text.Children.Add(title);
         text.Children.Add(new TextBlock { Text = what, Foreground = Res("Muted"), FontSize = 12, TextWrapping = TextWrapping.Wrap });
+        if (mine && _chat.Parties.FirstOrDefault(x => x.Id == p.PartyId) is { } mp)
+            text.Children.Add(new TextBlock { Text = $"You are in party '{mp.Name}'. People who join are added automatically.", Foreground = Res("Accent"), FontSize = 12, Margin = new Thickness(0, 2, 0, 0) });
         if (p.Note.Length > 0) text.Children.Add(new TextBlock { Text = p.Note, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 0) });
 
         var dock = new DockPanel();
@@ -263,6 +294,18 @@ public sealed class PartyFinderWindow : Window
         _activityBox.IsEnabled = _neededBox.IsEnabled = _durationBox.IsEnabled = _custom.IsEnabled = _note.IsEnabled = !all;
     }
 
+    void UpdateCustomHint()
+    {
+        if (_custom.Text.Trim().Length == 0) { _customHint.Text = "Type a time like 90, 90m, 1.5h, 1:30 or 2h30"; _customHint.Foreground = Res("Muted"); return; }
+        if (!TryParseMinutes(_custom.Text, out int m)) { _customHint.Text = "Not a valid time. Try 90, 1.5h or 2h30"; _customHint.Foreground = Res("Danger"); return; }
+        if (m < MinMinutes) { _customHint.Text = $"Too short: the minimum is {MinMinutes} minutes"; _customHint.Foreground = Res("Danger"); return; }
+        if (m > MaxMinutes) { _customHint.Text = "Too long: the maximum is 24 hours"; _customHint.Foreground = Res("Danger"); return; }
+        _customHint.Text = "= " + FormatMinutes(m);
+        _customHint.Foreground = Res("Muted");
+    }
+
+    static string FormatMinutes(int mins) => mins >= 60 ? (mins % 60 == 0 ? $"{mins / 60} h" : $"{mins / 60} h {mins % 60} min") : $"{mins} min";
+
     async Task PostAsync()
     {
         if (_game == "") return;
@@ -272,7 +315,8 @@ public sealed class PartyFinderWindow : Window
             if (minutes == 0)
             {
                 if (!TryParseMinutes(_custom.Text, out minutes)) throw new InvalidOperationException("Type a time like 90, 90m, 1.5h or 2h30 (15 minutes to 24 hours).");
-                minutes = Math.Clamp(minutes, MinMinutes, MaxMinutes);
+                if (minutes < MinMinutes) throw new InvalidOperationException($"The shortest time is {MinMinutes} minutes.");
+                if (minutes > MaxMinutes) throw new InvalidOperationException("The longest time is 24 hours.");
             }
             Say(await _chat.PostLfgAsync(_game, Activities[Math.Max(0, _activityBox.SelectedIndex)], _note.Text, _neededBox.SelectedIndex + 1, minutes), false);
         });
@@ -324,13 +368,15 @@ public sealed class PartyFinderWindow : Window
         UpdateForm();
         BuildGameList();
         BuildCards();
-        if (_status.Text.Length == 0) Say("Updates every 15 seconds.", false);
+        if (_status.Text.Length == 0) Say("Live: updates every 10 seconds.", false);
     }
 
     static string Friendly(Exception ex)
         => ex.Message.Contains("lfg_posts_needed") || ex.Message.Contains("needed_check")
-            ? "The server still only allows 15 players. Run server-party-finder-128.sql in Supabase to allow up to 128."
+            ? "The server still only allows 15 players. Run the updated chat-all.sql in the Supabase SQL Editor to allow up to 128."
+            : ex.Message.Contains("party_id") || ex.Message.Contains("joined") || ex.Message.Contains("lfg_joins")
+            ? "The server needs the party finder update. Run the updated chat-all.sql in the Supabase SQL Editor."
             : ex.Message.Contains("lfg_posts") || ex.Message.StartsWith("404")
-            ? "The party finder isn't set up on the server yet. Run server-party-finder.sql in Supabase first."
+            ? "The party finder isn't set up on the server yet. Run chat-all.sql in the Supabase SQL Editor first."
             : ex.Message;
 }

@@ -40,6 +40,9 @@ public class Config
     public string? GravemindExe { get; set; }
     public string? GravemindVersion { get; set; }
     public bool GravemindManual { get; set; }
+    public string? RavenExe { get; set; }
+    public string? RavenVersion { get; set; }
+    public bool RavenManual { get; set; }
     public string? GroundsideExe { get; set; }
     public bool GroundsideManual { get; set; }
     public string? GroundsideStamp { get; set; }
@@ -50,6 +53,7 @@ public class Config
     public bool NewsReach { get; set; } = true;
     public bool NewsOce { get; set; } = true;
     public bool NewsGravemind { get; set; } = true;
+    public bool NewsRaven { get; set; } = true;
     public bool NewsLauncher { get; set; } = true;
     public bool AutoUpdateLauncher { get; set; } = true;
     public bool DiscordPresence { get; set; } = true;
@@ -77,6 +81,11 @@ public partial class MainWindow : Window
     private const string GravemindRepo = "BriRoz1/h2gravemind-releases";
     private const string GravemindPrefix = "";
     private const string GravemindExt = ".exe";
+
+    private const string RavenRepo = "bryantmh/project-raven";
+    private const string RavenPrefix = "raven";
+    private const string RavenExt = ".exe";
+    private const string RavenFallbackUrl = "https://github.com/bryantmh/project-raven/releases/download/v1.0.1/raven.exe";
 
 
     private const string ReachRepo = "NETF1ix/reach-renaissance-releases";
@@ -215,13 +224,14 @@ public partial class MainWindow : Window
             ? (_config.OceManual ? "Installed: your own copy" : $"Ready to play {_config.OceVersion}".TrimEnd())
             : "Not installed: click to download the latest version";
         if (reach) ReachSub.Text += PlayedText("Halo Reach Renaissance");
-        if (halo3) Halo3Sub.Text += PlayedText("Halo 3 Reclaimer");
+        if (halo3) Halo3Sub.Text += PlayedText("Reclaimer");
         if (oce) OceSub.Text += PlayedText("OpenCE");
         Install.SetState(CommunityBtn, oce ? "Installed" : "Not installed");
         Install.SetState(ReachBtn, reach ? "Installed" : "Not installed");
         Install.SetState(Halo3Btn, halo3 ? "Installed" : "Not installed");
         UpdateOfficialPlayed();
         UpdateGravemindText();
+        UpdateRavenText();
         UpdateGroundsideText();
         PushClassicState();
     }
@@ -334,7 +344,7 @@ public partial class MainWindow : Window
         string dest = Path.Combine(dir, rel.AssetName);
         string tmp = dest + ".download";
 
-        SetBusy(true, $"Downloading Halo 3 Reclaimer {rel.Tag}…", determinate: true);
+        SetBusy(true, $"Downloading Reclaimer {rel.Tag}…", determinate: true);
         await DownloadAsync(rel.DownloadUrl, tmp, new Progress<double>(ReportProgress));
 
         foreach (var old in Directory.GetFiles(dir, Halo3Prefix + "*" + Halo3Ext))
@@ -354,7 +364,7 @@ public partial class MainWindow : Window
         if (installed && _config.Halo3Manual) return;
         if (!installed)
         {
-            SetBusy(true, "Finding the latest Halo 3 Reclaimer…");
+            SetBusy(true, "Finding the latest Reclaimer…");
             var rel = await GetLatestAsync(Halo3Repo, Halo3Prefix, Halo3Ext);
             await InstallHalo3Async(rel);
         }
@@ -362,7 +372,7 @@ public partial class MainWindow : Window
         {
             var newer = await CheckForNewerAsync(Halo3Repo, Halo3Prefix, Halo3Ext, _config.Halo3Version);
             if (newer != null && await AskAsync(
-                    $"Halo 3 Reclaimer {newer.Tag} is available (you have {_config.Halo3Version ?? "an unknown version"}).\n\nUpdate now?",
+                    $"Reclaimer {newer.Tag} is available (you have {_config.Halo3Version ?? "an unknown version"}).\n\nUpdate now?",
                     "Update available"))
                 await InstallHalo3Async(newer);
         }
@@ -374,7 +384,7 @@ public partial class MainWindow : Window
         try
         {
             await RunWithCountdownAsync(true, PrepareHalo3Async);
-            Launch(_config.Halo3Exe!, "Halo 3 Reclaimer");
+            Launch(_config.Halo3Exe!, "Reclaimer");
         }
         catch (Exception ex) { ShowError(ex); }
         finally { SetBusy(false, " "); }
@@ -483,6 +493,49 @@ public partial class MainWindow : Window
     }
 
 
+    private async Task InstallRavenAsync(ReleaseInfo rel)
+    {
+        string dir = Path.Combine(Root, "ProjectRaven");
+        Directory.CreateDirectory(dir);
+        string dest = Path.Combine(dir, rel.AssetName);
+        string tmp = dest + ".download";
+
+        SetBusy(true, $"Downloading Project Raven {rel.Tag}…", determinate: true);
+        await DownloadAsync(rel.DownloadUrl, tmp, new Progress<double>(ReportProgress));
+
+        foreach (var old in Directory.GetFiles(dir, RavenPrefix + "*" + RavenExt))
+            try { File.Delete(old); } catch { }
+        File.Move(tmp, dest, true);
+
+        _config.RavenExe = dest;
+        _config.RavenManual = false;
+        _config.RavenVersion = rel.Tag;
+        SaveConfig();
+        UpdateSubtitles();
+    }
+
+    private async Task PrepareRavenAsync()
+    {
+        bool installed = _config.RavenExe != null && File.Exists(_config.RavenExe);
+        if (installed && _config.RavenManual) return;
+        if (!installed)
+        {
+            SetBusy(true, "Finding the latest Project Raven…");
+            ReleaseInfo rel;
+            try { rel = await GetLatestAsync(RavenRepo, RavenPrefix, RavenExt); }
+            catch { rel = new ReleaseInfo("v1.0.1", "raven.exe", RavenFallbackUrl); }
+            await InstallRavenAsync(rel);
+        }
+        else
+        {
+            var newer = await CheckForNewerAsync(RavenRepo, RavenPrefix, RavenExt, _config.RavenVersion);
+            if (newer != null && await AskAsync(
+                    $"Project Raven {newer.Tag} is available (you have {_config.RavenVersion ?? "an unknown version"}).\n\nUpdate now?",
+                    "Update available"))
+                await InstallRavenAsync(newer);
+        }
+    }
+
     private bool _browserReady;
 
     private void ShowBrowser()
@@ -559,7 +612,7 @@ public partial class MainWindow : Window
     private List<NewsItem> _newsItems = new();
     private bool _newsLoaded, _newsDelivered;
 
-    private bool NewsEnabled(string id) => id switch { "halo3" => _config.NewsHalo3, "reach" => _config.NewsReach, "gravemind" => _config.NewsGravemind, "launcher" => _config.NewsLauncher, _ => _config.NewsOce };
+    private bool NewsEnabled(string id) => id switch { "halo3" => _config.NewsHalo3, "reach" => _config.NewsReach, "gravemind" => _config.NewsGravemind, "launcher" => _config.NewsLauncher, "raven" => _config.NewsRaven, _ => _config.NewsOce };
     private List<NewsItem> VisibleNews() => _newsItems.Where(x => NewsEnabled(x.Id)).ToList();
     private bool NewsHasNew() => VisibleNews().Any(x => x.IsNew);
 
@@ -589,10 +642,11 @@ public partial class MainWindow : Window
         var sources = new (string Id, string Name, string Repo)[]
         {
             ("launcher", "AHFMC: A Halo Fan-Made Collection (launcher)", LauncherRepo),
-            ("halo3", "Halo 3 Reclaimer", Halo3Repo),
+            ("halo3", "Reclaimer", Halo3Repo),
             ("reach", "Halo Reach Renaissance", ReachRepo),
             ("oce", "Open Community Edition", OpenCeRepo),
             ("gravemind", "Halo 2 Gravemind", GravemindRepo),
+            ("raven", "Project Raven", RavenRepo),
         };
         var list = new List<NewsItem>();
         foreach (var s in sources)
@@ -834,6 +888,7 @@ public partial class MainWindow : Window
         ["oce"] = new[] { "OpenCE" },
         ["halo3"] = new[] { "Halo3Reclaimer" },
         ["gravemind"] = new[] { "Halo2Gravemind" },
+        ["raven"] = new[] { "ProjectRaven" },
         ["groundside"] = new[] { "ProjectGroundside" },
         ["addapp"] = new[] { "AddApp" },
     };
@@ -1170,16 +1225,17 @@ public partial class MainWindow : Window
         var official = OfficialGames.ToDictionary(kv => kv.Key, kv => kv.Value.Select(o => OptState(kv.Key, o)).ToArray());
         ClassicSend(new { type = "state", bgVideo = BgState(BgVideoPath), bgMusic = BgMusicState(), bgAudio = VideoHasAudio(), played = OfficialPlayedAll(), layout = _config.Layout, video = _hybridOn, reach = ReachSub.Text, halo3 = Halo3Sub.Text, official, located = LocatedNames(), hide = _config.HideMissing, start = _config.StartScreen, cursor = _config.CursorMode, window = _config.WindowMode, countdown = _config.Countdown, closeTray = _config.CloseToTray, vol = SoundState(), maxGame = _config.MaximizeGame, newsStart = _config.ShowNewsOnStart, newsH3 = _config.NewsHalo3, newsReach = _config.NewsReach, newsOce = _config.NewsOce, newsGrave = _config.NewsGravemind, newsLauncher = _config.NewsLauncher, updAuto = _config.AutoUpdateLauncher, updText = LauncherVersionText(), discord = _config.DiscordPresence, loc = new { halo3 = GameLocation(_config.Halo3Exe, _config.Halo3Manual), reach = GameLocation(_config.ReachExe, _config.ReachManual), gravemind = GameLocation(_config.GravemindExe, _config.GravemindManual), oce = GameLocation(_config.OceExe, _config.OceManual), groundside = GameLocation(_config.GroundsideExe, _config.GroundsideManual) }, chat = ChatState(), logos = AllLogos(), customLogos = _config.GameLogos.Keys.Where(k => GameLogoPath(k) != null).ToArray(), menuSounds = MenuSoundUrls(), settings = SettingsModel(), blur = _config.BigPictureBlur,
             apps = _config.CustomApps.Select(x => new { id = x.Id, name = x.Name, ok = File.Exists(x.Path), file = Path.GetFileName(x.Path), hasImage = AppImagePath(x) != null }).ToArray(),
-            gravemind = GravemindSub.Text, oce = OceSub.Text, groundside = GroundsideSub.Text,
+            gravemind = GravemindSub.Text, oce = OceSub.Text, groundside = GroundsideSub.Text, raven = RavenSub.Text,
             installed = new
             {
                 reach = _config.ReachExe != null && File.Exists(_config.ReachExe),
                 halo3 = _config.Halo3Exe != null && File.Exists(_config.Halo3Exe),
                 oce = _config.OceExe != null && File.Exists(_config.OceExe),
                 gravemind = HasGravemind,
+                raven = HasRaven,
                 groundside = HasGroundside
             },
-            removable = new { reach = IsRemovable("reach"), halo3 = IsRemovable("halo3"), oce = IsRemovable("oce"), gravemind = IsRemovable("gravemind"), groundside = IsRemovable("groundside") } });
+            removable = new { reach = IsRemovable("reach"), halo3 = IsRemovable("halo3"), oce = IsRemovable("oce"), gravemind = IsRemovable("gravemind"), raven = IsRemovable("raven"), groundside = IsRemovable("groundside") } });
     }
 
 
@@ -1187,6 +1243,7 @@ public partial class MainWindow : Window
     {
         if (option == 2 && DownloadedGames.ContainsKey(id)) { _ = UninstallGameAsync(id); return; }
         if (id == "gravemind") { if (option == 0) _ = PlayGravemindAsync(); else LocateGravemind(); return; }
+        if (id == "raven") { if (option == 0) _ = PlayRavenAsync(); else LocateRaven(); return; }
         if (id == "groundside")
         {
             if (option == 1) LocateGroundside();
@@ -1244,6 +1301,7 @@ public partial class MainWindow : Window
                         case "halo3": Halo3_Click(this, new RoutedEventArgs()); break;
                         case "oce": Community_Click(this, new RoutedEventArgs()); break;
                         case "gravemind": await PlayGravemindAsync(); break;
+                        case "raven": await PlayRavenAsync(); break;
                         case "groundside": await PlayGroundsideAsync(false); break;
                         case "addapp": AddCustomApp(); break;
                         case var s when s != null && s.StartsWith("app:"): await LaunchCustomAppAsync(s[4..]); break;
@@ -1263,7 +1321,7 @@ public partial class MainWindow : Window
                     {
                         string nid = r.GetProperty("id").GetString() ?? "";
                         bool on = r.GetProperty("value").GetBoolean();
-                        if (nid == "halo3") _config.NewsHalo3 = on; else if (nid == "reach") _config.NewsReach = on; else if (nid == "oce") _config.NewsOce = on; else if (nid == "gravemind") _config.NewsGravemind = on; else if (nid == "launcher") _config.NewsLauncher = on;
+                        if (nid == "halo3") _config.NewsHalo3 = on; else if (nid == "reach") _config.NewsReach = on; else if (nid == "oce") _config.NewsOce = on; else if (nid == "gravemind") _config.NewsGravemind = on; else if (nid == "launcher") _config.NewsLauncher = on; else if (nid == "raven") _config.NewsRaven = on;
                         SaveConfig(); UpdateClassicToggleText(); PushNews(false);
                         break;
                     }
@@ -1561,6 +1619,7 @@ public partial class MainWindow : Window
         Install.SetState(MccNoEacBtn, Steam("976730"));
         Install.SetState(MccXboxBtn, Store("masterchiefcollection"));
         UpdateGravemindText();
+        UpdateRavenText();
         UpdateGroundsideText();
         ApplyHideMissing();
         PushClassicState();
@@ -2083,7 +2142,7 @@ public partial class MainWindow : Window
 
     private void SetBusy(bool busy, string text, bool determinate = false)
     {
-        ReachBtn.IsEnabled = Halo3Btn.IsEnabled = CommunityBtn.IsEnabled = GravemindBtn.IsEnabled = GroundsideBtn.IsEnabled =
+        ReachBtn.IsEnabled = Halo3Btn.IsEnabled = CommunityBtn.IsEnabled = GravemindBtn.IsEnabled = RavenBtn.IsEnabled = GroundsideBtn.IsEnabled =
             MccSteamBtn.IsEnabled = MccNoEacBtn.IsEnabled = MccXboxBtn.IsEnabled = !busy;
         _dlCts = busy && determinate ? new CancellationTokenSource() : null;
         CancelDlBtn.Visibility = busy && determinate ? Visibility.Visible : Visibility.Collapsed;

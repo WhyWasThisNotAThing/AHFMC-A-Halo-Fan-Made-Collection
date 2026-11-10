@@ -587,6 +587,123 @@ create trigger limit_invites_trg before insert on public.party_invites
 
 
 
+-- Party finder: every post gets its own party, and other players join with one click.
+-- The poster's app adds each joiner (the party chat is end-to-end encrypted, so only a
+-- member can hand out the key) and lowers "needed" by one.
+
+alter table public.lfg_posts add column if not exists party_id uuid;
+alter table public.lfg_posts add column if not exists joined   smallint not null default 0;
+
+alter table public.lfg_posts drop constraint if exists lfg_posts_needed_check;
+alter table public.lfg_posts add constraint lfg_posts_needed_check check (needed between 0 and 128);
+
+drop policy if exists "users update own posts" on public.lfg_posts;
+create policy "users update own posts" on public.lfg_posts
+  for update to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
+
+create or replace function public.lfg_before_update() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if (to_jsonb(new) - 'needed' - 'joined' - 'note' - 'activity' - 'expires_at')
+       is distinct from (to_jsonb(old) - 'needed' - 'joined' - 'note' - 'activity' - 'expires_at') then
+    raise exception 'Only the player counts, note, activity and time can be changed.' using errcode = 'P0001';
+  end if;
+  new.needed     := least(greatest(new.needed, 0), 128);
+  new.expires_at := least(greatest(new.expires_at, now() + interval '5 minutes'), now() + interval '24 hours');
+  return new;
+end $$;
+drop trigger if exists lfg_before_update_trg on public.lfg_posts;
+create trigger lfg_before_update_trg before update on public.lfg_posts
+  for each row execute function public.lfg_before_update();
+
+create table if not exists public.lfg_joins (
+  post_id    bigint not null references public.lfg_posts(id) on delete cascade,
+  user_id    uuid   not null default auth.uid() references auth.users(id) on delete cascade,
+  username   text   not null default '',
+  party_id   uuid,
+  status     text   not null default 'pending' check (status in ('pending', 'accepted', 'full')),
+  created_at timestamptz not null default now(),
+  primary key (post_id, user_id)
+);
+alter table public.lfg_joins enable row level security;
+
+drop policy if exists "see own or incoming joins" on public.lfg_joins;
+create policy "see own or incoming joins" on public.lfg_joins
+  for select to authenticated using (
+    user_id = auth.uid()
+    or exists (select 1 from public.lfg_posts p where p.id = lfg_joins.post_id and p.user_id = auth.uid()));
+
+drop policy if exists "users ask to join" on public.lfg_joins;
+create policy "users ask to join" on public.lfg_joins
+  for insert to authenticated with check (user_id = auth.uid());
+
+drop policy if exists "poster answers joins" on public.lfg_joins;
+create policy "poster answers joins" on public.lfg_joins
+  for update to authenticated
+  using      (exists (select 1 from public.lfg_posts p where p.id = lfg_joins.post_id and p.user_id = auth.uid()))
+  with check (exists (select 1 from public.lfg_posts p where p.id = lfg_joins.post_id and p.user_id = auth.uid()));
+
+drop policy if exists "remove own or incoming joins" on public.lfg_joins;
+create policy "remove own or incoming joins" on public.lfg_joins
+  for delete to authenticated using (
+    user_id = auth.uid()
+    or exists (select 1 from public.lfg_posts p where p.id = lfg_joins.post_id and p.user_id = auth.uid()));
+
+create or replace function public.lfg_joins_before_insert() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare p public.lfg_posts;
+begin
+  select * into p from public.lfg_posts where id = new.post_id;
+  if p.id is null or p.expires_at <= now() then
+    raise exception 'That post is no longer live.' using errcode = 'P0001';
+  end if;
+  if p.party_id is null then
+    raise exception 'That post has no party to join. Message the player instead.' using errcode = 'P0001';
+  end if;
+  if p.user_id = new.user_id then
+    raise exception 'That is your own post.' using errcode = 'P0001';
+  end if;
+  if p.needed <= 0 then
+    raise exception 'That party is already full.' using errcode = 'P0001';
+  end if;
+
+  select username into new.username from public.profiles where user_id = new.user_id;
+  if new.username is null then
+    raise exception 'Create your chat account first.' using errcode = 'P0001';
+  end if;
+
+  if (select count(*) from public.lfg_joins
+        where user_id = new.user_id and created_at > now() - interval '1 hour') >= 10 then
+    raise exception 'You have asked to join too many parties. Try again later.' using errcode = 'P0001';
+  end if;
+
+  new.party_id   := p.party_id;
+  new.status     := 'pending';
+  new.created_at := now();
+  return new;
+end $$;
+drop trigger if exists lfg_joins_before_insert_trg on public.lfg_joins;
+create trigger lfg_joins_before_insert_trg before insert on public.lfg_joins
+  for each row execute function public.lfg_joins_before_insert();
+
+create or replace function public.lfg_joins_before_update() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if (to_jsonb(new) - 'status') is distinct from (to_jsonb(old) - 'status') then
+    raise exception 'Only the status can be changed.' using errcode = 'P0001';
+  end if;
+  return new;
+end $$;
+drop trigger if exists lfg_joins_before_update_trg on public.lfg_joins;
+create trigger lfg_joins_before_update_trg before update on public.lfg_joins
+  for each row execute function public.lfg_joins_before_update();
+
+drop trigger if exists block_restricted_lfg_joins on public.lfg_joins;
+create trigger block_restricted_lfg_joins before insert on public.lfg_joins
+  for each row execute function public.block_restricted_sender();
+
+
+
 drop trigger  if exists limit_accounts_trg on public.profiles;
 drop function if exists public.limit_accounts();
 drop table    if exists public.account_limits;

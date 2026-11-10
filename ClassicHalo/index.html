@@ -95,6 +95,13 @@ body:has(#start.on) #app{visibility:hidden}
 #start h1{font-size:7rem}
 #start p{color:#fff;letter-spacing:.4em;font-size:1.1rem;text-shadow:0 0 .8rem var(--glow);animation:bl 1.2s infinite alternate}
 @keyframes bl{from{opacity:.25}}
+#dd{display:none;position:fixed;inset:0;z-index:40;align-items:center;justify-content:center;background:rgba(0,6,16,.8)}
+#dd.on{display:flex}
+.ddb{min-width:24rem;max-width:90vw;max-height:88vh;overflow-y:auto;border:1px solid #0a4b8f;background:#020b18;padding:1.2rem 1.4rem;box-shadow:0 0 2rem #0a4b8f66}
+.ddb h3{color:var(--mut);font-size:1rem;letter-spacing:.1em;margin-bottom:.8rem}
+.ddb button{display:block;width:100%;text-align:left;font:inherit;color:var(--blue);background:none;border:0;border-bottom:1px solid #0a2a4d;padding:.55rem .6rem}
+.ddb button:focus,.ddb button:hover{outline:0;color:#fff;text-shadow:0 0 1rem var(--glow),0 0 .3rem var(--glow)}
+.ddb button.cur::before{content:'\2713  '}
 </style>
 </head>
 <body>
@@ -105,6 +112,7 @@ body:has(#start.on) #app{visibility:hidden}
  <div id="hint"><button data-k="Enter">ENTER SELECT</button><button data-k="back">ESC BACK</button><button data-k="KeyQ">◄ Q</button><button data-k="KeyE">E ►</button></div>
  <footer id="bar" hidden><span id="bt"></span><i><b id="bf"></b></i><button id="bc">Cancel</button></footer>
 </div>
+<div id="dd"></div>
 <div id="count"><b></b></div>
 <div id="start"><h1>AHFMC</h1><p>PRESS ENTER OR CLICK TO START</p></div>
 <script>
@@ -119,7 +127,7 @@ const GAMES=[
  ['hw2','Halo Wars 2',['Microsoft Store']],
  ['spartanassault','Halo: Spartan Assault',['Steam','Microsoft Store']],
  ['spartanstrike','Halo: Spartan Strike',['Steam','Microsoft Store']]];
-const COMM=[['reach','Halo Reach Renaissance'],['halo3','Halo 3 Reclaimer'],['gravemind','Halo 2 Gravemind'],['oce','Open Community Edition'],['groundside','Project Groundside']];
+const COMM=[['reach','Halo Reach Renaissance'],['halo3','Reclaimer'],['gravemind','Halo 2 Gravemind'],['oce','Open Community Edition'],['groundside','Project Groundside'],['raven','Project Raven']];
 const MENU=[['games','GAMES'],['community','COMMUNITY'],['apps','MY APPS'],['news','NEWS'],['settings','SETTINGS'],['chat','CHAT'],['min','MINIMIZE'],['exit','EXIT']];
 const TITLE={games:'Official games',community:'Community projects',apps:'My apps',news:'News',settings:'Settings'};
 let S={official:{},apps:[]},cur='games',ac,abuf=null,Q=0;
@@ -177,6 +185,25 @@ function show(id){
 let sc=0,sr=0,ss=0;
 const SM=()=>S.settings||[],SEL=q=>[...document.querySelectorAll(q)];
 function markSub(r){if(r)r.querySelectorAll('.sb').forEach((b,i)=>b.classList.toggle('on',r===document.activeElement&&i===ss))}
+let DD=false;
+function closeDD(){const o=$('#dd');o.classList.remove('on');o.replaceChildren();DD=false;const r=SEL('.srow')[sr];if(r)fq(r)}
+function openDD(d){
+ const o=$('#dd'),box=el('div','ddb');o.replaceChildren(box);box.append(el('h3','',d.label));
+ (d.drop||[]).forEach((t,k)=>{
+  const b=el('button',t===d.value?'cur':'',t);
+  b.onmouseenter=()=>{if(document.activeElement!==b)b.focus()};
+  b.onfocus=()=>snd('cursor');
+  b.onclick=e=>{e.stopPropagation();snd('fwd');const same=t===d.value;closeDD();if(!same)send({type:'settingPick',i:d.i,v:k})};
+  box.append(b)});
+ o.onclick=e=>{if(e.target===o){snd('back');closeDD()}};
+ o.classList.add('on');DD=true;
+ const f=box.querySelector('.cur')||box.querySelector('button');if(f)fq(f)}
+function ddkey(c){
+ const B=SEL('#dd .ddb button'),i=B.indexOf(document.activeElement);
+ if(c==='ArrowDown'||c==='ArrowUp'){if(B.length)B[i<0?0:(i+(c==='ArrowDown'?1:-1)+B.length)%B.length].focus()}
+ else if(c==='Enter'){if(i>=0)B[i].click()}
+ else if(c==='Escape'||c==='ArrowLeft'){snd('back');closeDD()}}
+function act(d){if(d.kind==='drop'){snd('fwd');openDD(d)}else{snd('fwd');send({type:'setting',i:d.i,d:(d.btns&&d.btns.length>1&&ss===1)?-1:1})}}
 function fillRows(R){
  R.replaceChildren();const c=SM()[sc];if(!c)return;
  c.items.forEach((d,n)=>{
@@ -191,7 +218,7 @@ function fillRows(R){
   r.onfocus=()=>{sr=n;ss=0;markSub(r);snd('cursor')};
   r.onblur=()=>markSub(r);
   r.onmouseenter=()=>{if(document.activeElement!==r)r.focus()};
-  r.onclick=()=>{snd('fwd');send({type:'setting',i:d.i,d:(d.btns&&d.btns.length>1&&ss===1)?-1:1})};
+  r.onclick=()=>act(d);
   R.append(r)})}
 function selCat(i){
  if(sc===i&&document.querySelector('.srow'))return;
@@ -209,6 +236,7 @@ function settings(L){
   C.append(b)});
  W.append(C,R);L.append(W);fillRows(R)}
 function skey(c){
+ if(DD){ddkey(c);return}
  const cats=SM(),cb=SEL('.scat'),rb=SEL('.srow'),a=document.activeElement;
  if(!cats.length)return;
  const zc=a&&a.classList.contains('scat'),zr=a&&a.classList.contains('srow');
@@ -221,9 +249,10 @@ function skey(c){
  const i=rb.indexOf(a),d=(cats[sc]||{items:[]}).items[i];if(!d)return;
  if(c==='ArrowDown'||c==='ArrowUp')rb[(i+(c==='ArrowDown'?1:-1)+rb.length)%rb.length].focus();
  else if(c==='Escape')cb[sc].focus();
- else if(c==='Enter'){snd('fwd');send({type:'setting',i:d.i,d:(d.btns&&d.btns.length>1&&ss===1)?-1:1})}
+ else if(c==='Enter')act(d);
  else{
   const dl=c==='ArrowRight'?1:-1;
+  if(d.kind==='drop'){if(c==='ArrowLeft')cb[sc].focus();return}
   if(d.kind==='btn'||d.kind==='btns'){const k=ss+dl;if(k<0){cb[sc].focus();return}ss=Math.min(k,(d.btns||[]).length-1);markSub(a);snd('cursor')}
   else{snd('cursor');send({type:'setting',i:d.i,d:dl})}}}
 
@@ -247,6 +276,7 @@ document.querySelectorAll('#hint button').forEach(b=>{
   if(k==='Enter'){const a=document.activeElement;if(a&&a.click&&a!==document.body)a.click();else{const f=inSub()?$('#list button'):$('#menu button');if(f)fq(f)}return}
   snd('cursor');key(k)}});
 function key(c){
+ if(DD){ddkey(c);return}
  if($('#start').classList.contains('on')){if(c==='Enter'||c==='Start')go();return}
  if(inSub()&&cur==='settings'&&['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Enter','Escape'].includes(c)){skey(c);return}
  const a=document.activeElement,sub=inSub(),M=[...$('#menu').children],B=[...$('#list').querySelectorAll('button')],g=sub?B:M,i=g.indexOf(a);

@@ -146,7 +146,7 @@ public partial class MainWindow
         Heading("NEWS");
         SetupToggle("Show what's new", "Open the news when the launcher starts and one of the projects below has a new release.",
             () => _config.ShowNewsOnStart, v => { _config.ShowNewsOnStart = v; SaveConfig(); PushClassicState(); });
-        SetupToggle("Halo 3 Reclaimer news", "Include the Halo 3 Reclaimer release notes.",
+        SetupToggle("Reclaimer news", "Include the Reclaimer release notes.",
             () => _config.NewsHalo3, v => { _config.NewsHalo3 = v; SaveConfig(); PushClassicState(); PushNews(false); });
         SetupToggle("Halo Reach Renaissance news", "Include the Halo Reach Renaissance release notes.",
             () => _config.NewsReach, v => { _config.NewsReach = v; SaveConfig(); PushClassicState(); PushNews(false); });
@@ -154,6 +154,8 @@ public partial class MainWindow
             () => _config.NewsOce, v => { _config.NewsOce = v; SaveConfig(); PushClassicState(); PushNews(false); });
         SetupToggle("Halo 2 Gravemind news", "Include the Halo 2 Gravemind release notes.",
             () => _config.NewsGravemind, v => { _config.NewsGravemind = v; SaveConfig(); PushClassicState(); PushNews(false); });
+        SetupToggle("Project Raven news", "Include the Project Raven release notes.",
+            () => _config.NewsRaven, v => { _config.NewsRaven = v; SaveConfig(); PushClassicState(); PushNews(false); });
 
         RefreshSetup();
     }
